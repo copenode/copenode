@@ -1,7 +1,7 @@
 {
   "name": "@copenode/core",
-  "version": "0.0.1",
-  "description": "Shared core for copenode: the bridge between OpenClaw (chat assistant gateway) and Paseo (coding-agent orchestration). Identity mapping, metering ledger, and routing policy.",
+  "version": "0.0.2",
+  "description": "Shared core for copenode: the policy spine beneath agent nodes — identity mapping, trust-tier routing, and the metering ledger.",
   "type": "module",
   "main": "index.js",
   "exports": {
