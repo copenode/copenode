@@ -1,13 +1,16 @@
 # copenode
 
-**Chat in. Agents out.**
+**Architectural foundation and node orchestration platform.**
+**Autonomy engineered around systemic stability.**
 
 <!-- Replace badges once CI + first publish exist -->
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: experimental](https://img.shields.io/badge/status-v0%20experimental-orange.svg)](#status)
-[![npm](https://img.shields.io/badge/npm-%40copenode%2Fcore-blue.svg)](https://www.npmjs.com/org/copenode)
+[![npm](https://img.shields.io/npm/v/@copenode/core.svg)](https://www.npmjs.com/package/@copenode/core)
 
-`copenode` connects [OpenClaw](https://github.com/openclaw/openclaw) — the open-source assistant that lives in your WhatsApp, Telegram, and Discord — to [Paseo](https://github.com/getpaseo/paseo) — the open-source environment that runs Claude Code, Codex, and OpenCode in parallel git worktrees on your machines.
+copenode is the policy spine beneath heterogeneous agent nodes — assistant gateways, coding-agent fleets, schedulers, sandboxes, machines. Nodes declare identity, trust, and budget; copenode routes work to them, meters every action, and contains every blast radius.
+
+**First integration:** the bridge between [OpenClaw](https://github.com/openclaw/openclaw) — the open-source assistant living in your WhatsApp, Telegram, and Discord — and [Paseo](https://github.com/getpaseo/paseo) — the open-source environment running Claude Code, Codex, and OpenCode in parallel git worktrees on your machines.
 
 The result: a message from a colleague becomes a sandboxed coding agent on your VPS, and the diff comes back to the chat thread.
 
@@ -21,9 +24,17 @@ The result: a message from a colleague becomes a sandboxed coding agent on your 
 
 ## Why
 
-The OpenClaw + Paseo stack is the self-hosted answer to hosted agent platforms — but today the two are only connected by DIY glue: shell out to the `paseo` CLI, wire up raw MCP, hope for the best. Nobody ships the bridge.
+Agent nodes are everywhere — assistant gateways, coding-agent fleets, schedulers, sandboxes — but each is an island with its own identity model, trust assumptions, and cost exposure. No shared foundation answers the questions that decide whether autonomy is safe to grant: *who asked, what are they allowed to reach, how much may it cost, and how bad can it get?*
 
-copenode is that bridge, as a **thin plugin layer** — no forks, no monolith, no "switch tools." It composes the two you already run.
+copenode is that foundation, built thin: a core of identity, trust tiers, routing policy, and metering — with adapters that bring existing nodes (OpenClaw, Paseo, more to come) under one spine. No forks. No monolith. Nodes stay sovereign; the platform stays small.
+
+## Doctrine
+
+- **Autonomy is the goal.** Agents should act without waiting for you.
+- **Stability is what buys it.** Every grant of autonomy ships with a systemic bound.
+- **Trust is tiered, not binary.** `owner` / `sender` / `system` → worktree / sandbox / sandbox. Prompts you didn't type never run unsandboxed.
+- **Every action is metered.** Identity makes cost attributable; budgets make it finite.
+- **Nodes stay sovereign.** copenode orchestrates nodes; it does not replace them.
 
 ## Features
 
