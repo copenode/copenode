@@ -1,0 +1,41 @@
+{
+  "name": "@copenode/core",
+  "version": "0.0.1",
+  "description": "Shared core for copenode: the bridge between OpenClaw (chat assistant gateway) and Paseo (coding-agent orchestration). Identity mapping, metering ledger, and routing policy.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "openclaw",
+    "paseo",
+    "agents",
+    "orchestration",
+    "bridge",
+    "mcp",
+    "acp"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/copenode/copenode.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://copenode.com",
+  "bugs": {
+    "url": "https://github.com/copenode/copenode/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

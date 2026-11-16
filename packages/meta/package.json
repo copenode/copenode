@@ -1,0 +1,28 @@
+{
+  "name": "copenode",
+  "version": "0.0.1",
+  "description": "Meta package for copenode — the bridge between OpenClaw (chat assistant gateway) and Paseo (coding-agent orchestration). The code lives in @copenode/core and the plugin packages. See https://copenode.com",
+  "type": "module",
+  "files": [
+    "README.md"
+  ],
+  "keywords": [
+    "openclaw",
+    "paseo",
+    "agents",
+    "orchestration",
+    "bridge"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/copenode/copenode.git"
+  },
+  "homepage": "https://copenode.com",
+  "bugs": {
+    "url": "https://github.com/copenode/copenode/issues"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

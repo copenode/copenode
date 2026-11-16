@@ -1,0 +1,38 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        required: true
+        type: choice
+        options:
+          - core
+          - meta
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  # Required for npm provenance attestation:
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish ${{ inputs.package || 'core' }}
+        working-directory: packages/${{ inputs.package || 'core' }}
+        run: |
+          npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
