@@ -1,7 +1,7 @@
 {
   "name": "copenode",
-  "version": "0.0.1",
-  "description": "Meta package for copenode — the bridge between OpenClaw (chat assistant gateway) and Paseo (coding-agent orchestration). The code lives in @copenode/core and the plugin packages. See https://copenode.com",
+  "version": "0.0.2",
+  "description": "Architectural foundation and node orchestration platform. Autonomy engineered around systemic stability. Meta package — code lives in @copenode/core.",
   "type": "module",
   "files": [
     "README.md"
