@@ -1,0 +1,14 @@
+[package]
+name = "copenode"
+version = "0.0.1"
+edition = "2021"
+description = "copenode — node orchestration platform. Autonomy engineered around systemic stability. Name reservation; active code lives in the TypeScript monorepo (@copenode/core)."
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/copenode/copenode"
+homepage = "https://copenode.com"
+keywords = ["agents", "orchestration", "automation", "ai"]
+categories = ["development-tools"]
+
+[lib]
+path = "src/lib.rs"
