@@ -42,9 +42,16 @@ function parseRunOutput(stdout: string): SpawnResult {
   }
 }
 
-export async function spawnWorkspace(req: SpawnRequest, projectPath: string | null): Promise<SpawnResult> {
+export async function spawnWorkspace(
+  req: SpawnRequest,
+  projectPath: string | null,
+  provider: string | null,
+): Promise<SpawnResult> {
   if (!projectPath) {
     throw new Error("NOT_CONFIGURED: no projectPath — set it in ~/.paseo/copenode/config.json");
+  }
+  if (!provider) {
+    throw new Error("NOT_CONFIGURED: no provider — set \"provider\": \"opencode\" in ~/.paseo/copenode/config.json");
   }
   const slugSource = `${req.label}-${req.ledgerEntryId.slice(0, 8)}`;
   const slug = slugSource.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
@@ -52,6 +59,8 @@ export async function spawnWorkspace(req: SpawnRequest, projectPath: string | nu
     "run",
     "--no-wait",
     "--json",
+    "--provider",
+    provider,
     "--title",
     slug,
     "--new-workspace",

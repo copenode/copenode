@@ -19,8 +19,14 @@ export interface IngressOptions {
   host?: string;
   /** project directory agents work in; null until configured */
   projectPath?: string | null;
+  /** provider passed to `paseo run --provider` */
+  provider?: string | null;
   /** injected for tests; defaults to the real seam */
-  spawn?: (req: SpawnRequest, projectPath: string | null) => Promise<{ workspaceId: string | null; agentId: string | null }>;
+  spawn?: (
+    req: SpawnRequest,
+    projectPath: string | null,
+    provider: string | null,
+  ) => Promise<{ workspaceId: string | null; agentId: string | null }>;
 }
 
 export function startIngress(opts: IngressOptions): { stop: () => void; port: () => number } {
@@ -62,7 +68,7 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
             text: payload.text ?? "",
             threadRef: payload.threadRef,
             ledgerEntryId: decision.ledgerEntryId,
-          }, opts.projectPath ?? null)
+          }, opts.projectPath ?? null, opts.provider ?? null)
             .then((result) => {
               res.writeHead(200, { "content-type": "application/json" });
               res.end(JSON.stringify({ ...decision, workspaceId: result.workspaceId, agentId: result.agentId }));

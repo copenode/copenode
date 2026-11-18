@@ -25,7 +25,13 @@ import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startIngress } from "./server/ingress.ts";
 import type { BridgeConfig } from "./server/decide.ts";
 
-function readConfig(): { config: BridgeConfig; ledgerPath: string; port: number; projectPath: string | null } {
+function readConfig(): {
+  config: BridgeConfig;
+  ledgerPath: string;
+  port: number;
+  projectPath: string | null;
+  provider: string | null;
+} {
   const env = process.env;
   const baseDir = join(os.homedir(), ".paseo", "copenode");
   const configPath = env.COPENODE_CONFIG ?? join(baseDir, "config.json");
@@ -53,22 +59,25 @@ function readConfig(): { config: BridgeConfig; ledgerPath: string; port: number;
   const limit = Number(env.COPENODE_LIMIT ?? file.limit ?? 2);
   const projectPath = env.COPENODE_PROJECT
     ?? (typeof file.projectPath === "string" ? file.projectPath : null);
+  const provider = env.COPENODE_PROVIDER
+    ?? (typeof file.provider === "string" ? file.provider : null);
 
   return {
     config: { ownerLabels, allowlistedLabels, limit },
     ledgerPath,
     port,
     projectPath,
+    provider,
   };
 }
 
 export default function contribute(_server: PluginServerContext) {
-  const { config, ledgerPath, port, projectPath } = readConfig();
-  const ingress = startIngress({ config, ledgerPath, port, projectPath });
+  const { config, ledgerPath, port, projectPath, provider } = readConfig();
+  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider });
   console.log(
     `[copenode] ingress on 127.0.0.1:${ingress.port()} · limit $${config.limit}/sender/24h · ` +
     `owner labels: ${config.ownerLabels.length} · sender labels: ${config.allowlistedLabels.length} · ` +
-    `project: ${projectPath ?? "(none)"} · ledger: ${ledgerPath}`,
+    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ledger: ${ledgerPath}`,
   );
   return () => {
     ingress.stop();
