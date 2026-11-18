@@ -1,0 +1,41 @@
+{
+  "name": "@copenode/cli",
+  "version": "0.1.0",
+  "description": "CLI for the copenode metering ledger: read the trail, verify the chain.",
+  "type": "module",
+  "bin": {
+    "copenode": "./bin/copenode.js"
+  },
+  "files": [
+    "bin/"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "copenode",
+    "agents",
+    "orchestration",
+    "metering",
+    "cli"
+  ],
+  "dependencies": {
+    "@copenode/core": "^0.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/copenode/copenode.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://copenode.com",
+  "bugs": {
+    "url": "https://github.com/copenode/copenode/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

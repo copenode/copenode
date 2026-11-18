@@ -92,16 +92,33 @@ export function memoryStore(seed = []) {
 /**
  * Append-only JSONL file store. One JSON entry per line; loaded on open.
  * Local-first, grep-able, trivially archived.
+ *
+ * Crash tolerance: a torn final line (power loss mid-append) is skipped and
+ * flagged as `tornTail`; corruption anywhere earlier is a hard error — the
+ * spine refuses to silently swallow history it cannot parse.
+ *
  * @param {string} path file path; parent directory must exist
  */
 export function jsonlStore(path) {
   let entries = [];
+  let tornTail = false;
   try {
     const text = readFileSync(path, "utf8");
-    entries = text
-      .split("\n")
-      .filter((line) => line.trim().length > 0)
-      .map((line) => JSON.parse(line));
+    const lines = text.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trim().length === 0) continue;
+      try {
+        entries.push(JSON.parse(line));
+      } catch (err) {
+        const isLastLine = lines.slice(i + 1).every((l) => l.trim().length === 0);
+        if (isLastLine) {
+          tornTail = true;
+          continue;
+        }
+        throw new SyntaxError(`corrupt ledger line ${i + 1}: ${err.message}`);
+      }
+    }
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
@@ -112,6 +129,9 @@ export function jsonlStore(path) {
     },
     all() {
       return entries.slice();
+    },
+    get tornTail() {
+      return tornTail;
     },
   };
 }

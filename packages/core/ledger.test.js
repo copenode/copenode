@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -103,6 +103,31 @@ test("jsonl store roundtrips and stays verifiable", () => {
     assert.equal(reopened.snapshot().length, 2);
     assert.deepEqual(reopened.verify(), { ok: true, entries: 2 });
     assert.equal(reopened.evalsOf(run.id)[0].judge, "model");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("jsonl store tolerates a torn tail, refuses mid-file corruption", () => {
+  const dir = mkdtempSync(join(tmpdir(), "copenode-ledger-"));
+  const path = join(dir, "ledger.jsonl");
+  try {
+    const ledger = createLedger({ store: jsonlStore(path) });
+    ledger.record({ identity: OWNER, cost: { dollars: 0.5 } });
+    ledger.record({ identity: COLLEAGUE, cost: { dollars: 0.25 } });
+    const store = jsonlStore(path);
+    const good = readFileSync(path, "utf8");
+
+    // power loss mid-append: last line cut in half, no trailing newline
+    writeFileSync(path, good.slice(0, good.length - 30));
+    const healed = jsonlStore(path);
+    assert.equal(healed.tornTail, true);
+    assert.equal(healed.all().length, 1); // the complete entry survived
+
+    // corruption mid-file is never swallowed
+    const lines = good.split("\n");
+    writeFileSync(path, [lines[0], "{oops not json", ...lines.slice(1)].join("\n"));
+    assert.throws(() => jsonlStore(path), SyntaxError);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
