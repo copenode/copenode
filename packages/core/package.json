@@ -1,6 +1,6 @@
 {
   "name": "@copenode/core",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Shared core for copenode: the policy spine beneath agent nodes — identity mapping, trust-tier routing, and the metering ledger.",
   "type": "module",
   "main": "index.js",
@@ -8,7 +8,9 @@
     ".": "./index.js"
   },
   "files": [
-    "index.js"
+    "index.js",
+    "trust.js",
+    "ledger.js"
   ],
   "scripts": {
     "test": "node --test"

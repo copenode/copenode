@@ -1,56 +1,22 @@
 /**
- * @copenode/core — v0
+ * @copenode/core — v0.1
  *
- * Shared primitives for the copenode bridge:
- * OpenClaw (chat gateway) <-> Paseo (agent fleet).
+ * The policy spine beneath agent nodes.
  *
- * Honest status: these are the first real building blocks.
- * The bridge protocol, metering ledger, and policy engine
- * grow here. See https://github.com/copenode/copenode
+ * - trust.js: identity mapping + tiered routing (who asked, what it may reach)
+ * - ledger.js: the metering ledger (cost, trail, evals — one event spine)
+ *
+ * These two modules are the whole center on purpose: copenode orchestrates
+ * nodes, it never replaces them. See https://github.com/copenode/copenode
  */
 
-export const CORE_VERSION = "0.0.1";
+export const CORE_VERSION = "0.1.0";
 
-/**
- * Trust tiers. Drives workspace routing:
- *  - "owner"    -> prompts you typed: plain worktree, your authority
- *  - "sender"   -> prompts from people you allowlisted: sandboxed workspace
- *  - "system"   -> schedules, heartbeats, internet-sourced content: sandboxed
- * @typedef {"owner" | "sender" | "system"} TrustTier
- */
-
-/**
- * Map an OpenClaw channel sender to a stable Paseo agent label.
- * Same sender -> same label -> per-person usage and history line up
- * across both daemons (metering key).
- *
- * @param {{ channel: string, senderId: string }} from
- * @returns {string} label safe for Paseo's label filter, e.g. "oc/whatsapp/+1555…"
- */
-export function senderToLabel({ channel, senderId }) {
-  if (!channel || !senderId) {
-    throw new Error("senderToLabel requires channel and senderId");
-  }
-  const safeChannel = String(channel).toLowerCase().replace(/[^a-z0-9-]/g, "");
-  const safeSender = String(senderId).replace(/[^a-zA-Z0-9._+-]/g, "");
-  return `oc/${safeChannel}/${safeSender}`;
-}
-
-/**
- * Routing decision for a workspace, from the trust model:
- * prompts you didn't type never run unsandboxed.
- *
- * @param {TrustTier} tier
- * @returns {{ isolation: "worktree" | "sandbox", scopedCredentials: boolean }}
- */
-export function routingFor(tier) {
-  switch (tier) {
-    case "owner":
-      return { isolation: "worktree", scopedCredentials: false };
-    case "sender":
-    case "system":
-      return { isolation: "sandbox", scopedCredentials: true };
-    default:
-      throw new Error(`unknown trust tier: ${tier}`);
-  }
-}
+export { senderToLabel, routingFor, TIERS } from "./trust.js";
+export {
+  createLedger,
+  memoryStore,
+  jsonlStore,
+  entryHash,
+  GENESIS_HASH,
+} from "./ledger.js";
