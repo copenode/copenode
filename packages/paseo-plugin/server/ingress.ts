@@ -6,6 +6,8 @@
  */
 
 import { createServer, type Server } from "node:http";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { createLedger, jsonlStore } from "@copenode/core";
 import { decideInbound, type BridgeConfig } from "./decide.ts";
 import { spawnWorkspace } from "./workspace.ts";
@@ -20,6 +22,9 @@ export interface IngressOptions {
 }
 
 export function startIngress(opts: IngressOptions): { stop: () => void; port: () => number } {
+  // The daemon's cwd is wherever it was launched from — never trust it with
+  // state. Create the ledger's home explicitly.
+  mkdirSync(dirname(opts.ledgerPath), { recursive: true });
   const ledger = createLedger({ store: jsonlStore(opts.ledgerPath) });
   const spawn = opts.spawn ?? spawnWorkspace;
 

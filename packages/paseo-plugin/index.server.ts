@@ -7,12 +7,14 @@
  * Configuration (for now, env on the daemon host — moves to plugin
  * settings when the lab confirms the canonical shape):
  *   COPENODE_PORT        default 6789
- *   COPENODE_LEDGER      default ./copenode-ledger.jsonl (daemon cwd)
+ *   COPENODE_LEDGER      default ~/.paseo/copenode/ledger.jsonl
  *   COPENODE_LIMIT       dollars per sender per 24h, default 2
  *   COPENODE_OWNERS      comma-separated owner labels
  *   COPENODE_SENDERS     comma-separated allowlisted labels
  */
 
+import os from "node:os";
+import { join } from "node:path";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startIngress } from "./server/ingress.ts";
 
@@ -22,7 +24,7 @@ function readConfig() {
   const limit = Number(env.COPENODE_LIMIT ?? 2);
   const ownerLabels = (env.COPENODE_OWNERS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const allowlistedLabels = (env.COPENODE_SENDERS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const ledgerPath = env.COPENODE_LEDGER ?? "./copenode-ledger.jsonl";
+  const ledgerPath = env.COPENODE_LEDGER ?? join(os.homedir(), ".paseo", "copenode", "ledger.jsonl");
   return { config: { ownerLabels, allowlistedLabels, limit }, ledgerPath, port };
 }
 
