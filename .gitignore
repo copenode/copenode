@@ -5,3 +5,5 @@ dist/
 *.tgz
 docs/MANIFESTO.md
 docs/ROADMAP.md
+target/
+Cargo.lock
