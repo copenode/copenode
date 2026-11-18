@@ -31,13 +31,6 @@ COPENODE_LEDGER=./copenode-ledger.jsonl
 COPENODE_LIMIT=2                    # dollars / sender / 24h
 COPENODE_OWNERS=oc/whatsapp/+33612345678
 COPENODE_SENDERS=oc/whatsapp/+1555000222,oc/telegram/alice
-COPENODE_PROVIDER=opencode
-COPENODE_MODEL=opencode-go/kimi-k3
 ```
-
-`provider` is the Paseo agent provider (`opencode`); `model` selects the
-OpenCode model inside it. OpenCode Go models use the `opencode-go/` prefix
-(for example `opencode-go/kimi-k3`) and require the OpenCode Console
-credential in the daemon's OpenCode install.
 
 MIT. See the [monorepo](https://github.com/copenode/copenode) for status.

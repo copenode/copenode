@@ -11,14 +11,11 @@
  *     "allowlistedLabels":  ["oc/telegram/alice"],
  *     "limit":              2,          // dollars / sender / 24h
  *     "projectPath":        "/home/uma/copenode-lab/demo-repo",
- *     "provider":           "opencode",
- *     "model":              "opencode-go/kimi-k3",
  *     "ledgerPath":         "~/.paseo/copenode/ledger.jsonl",
  *     "port":               6789
  *   }
  *   Env: COPENODE_PORT, COPENODE_LEDGER, COPENODE_LIMIT,
- *        COPENODE_OWNERS, COPENODE_SENDERS, COPENODE_PROJECT, COPENODE_CONFIG,
- *        COPENODE_PROVIDER, COPENODE_MODEL
+ *        COPENODE_OWNERS, COPENODE_SENDERS, COPENODE_PROJECT, COPENODE_CONFIG
  */
 
 import os from "node:os";
@@ -34,7 +31,6 @@ function readConfig(): {
   port: number;
   projectPath: string | null;
   provider: string | null;
-  model: string | null;
 } {
   const env = process.env;
   const baseDir = join(os.homedir(), ".paseo", "copenode");
@@ -51,7 +47,7 @@ function readConfig(): {
   // most often an agent that went config-hunting instead of doing its job.
   const KNOWN_KEYS = new Set([
     "ownerLabels", "allowlistedLabels", "limit", "projectPath",
-    "provider", "model", "ledgerPath", "port",
+    "provider", "ledgerPath", "port",
   ]);
   const unknownKeys = Object.keys(file).filter((k) => !KNOWN_KEYS.has(k));
   if (unknownKeys.length > 0) {
@@ -87,12 +83,9 @@ function readConfig(): {
   if (provider !== null && !KNOWN_PROVIDERS.has(provider)) {
     throw new Error(
       `copenode config: unknown provider "${provider}". ` +
-        `Paseo providers are CLIs — one of ${[...KNOWN_PROVIDERS].join(", ")}. ` +
-        `(Model providers like opencode-go/* live inside OpenCode's own config, not here.)`,
+        `Paseo providers are CLIs — one of ${[...KNOWN_PROVIDERS].join(", ")}.`,
     );
   }
-  const model = env.COPENODE_MODEL
-    ?? (typeof file.model === "string" ? file.model : null);
 
   return {
     config: { ownerLabels, allowlistedLabels, limit },
@@ -100,18 +93,16 @@ function readConfig(): {
     port,
     projectPath,
     provider,
-    model,
   };
 }
 
 export default function contribute(_server: PluginServerContext) {
-  const { config, ledgerPath, port, projectPath, provider, model } = readConfig();
-  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider, model });
+  const { config, ledgerPath, port, projectPath, provider } = readConfig();
+  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider });
   console.log(
     `[copenode] ingress on 127.0.0.1:${ingress.port()} · limit $${config.limit}/sender/24h · ` +
     `owner labels: ${config.ownerLabels.length} · sender labels: ${config.allowlistedLabels.length} · ` +
-    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ` +
-    `model: ${model ?? "(default)"} · ledger: ${ledgerPath}`,
+    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ledger: ${ledgerPath}`,
   );
   return () => {
     ingress.stop();
