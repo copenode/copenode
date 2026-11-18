@@ -30,22 +30,18 @@ export interface SpawnResult {
   agentId: string | null;
 }
 
-/** Best-effort parse of `paseo run --json` output; never throws on shape. */
+/** Best-effort parse of `paseo run` output: compact, pretty-printed, or mixed human+JSON. */
 function parseRunOutput(stdout: string): SpawnResult {
-  try {
-    const parsed = JSON.parse(stdout) as Record<string, unknown>;
-    const id = typeof parsed.id === "string" ? parsed.id : typeof parsed.agentId === "string" ? parsed.agentId : null;
-    const ws = typeof parsed.workspaceId === "string" ? parsed.workspaceId : null;
-    return { agentId: id, workspaceId: ws };
-  } catch {
-    return { agentId: null, workspaceId: null };
-  }
+  const wsMatch = stdout.match(/wks_[a-z0-9]+/);
+  const idMatch = stdout.match(/"agentId"\s*:\s*"([0-9a-fA-F-]+)"/);
+  return { agentId: idMatch ? idMatch[1] : null, workspaceId: wsMatch ? wsMatch[0] : null };
 }
 
 export async function spawnWorkspace(
   req: SpawnRequest,
   projectPath: string | null,
   provider: string | null,
+  model: string | null,
 ): Promise<SpawnResult> {
   if (!projectPath) {
     throw new Error("NOT_CONFIGURED: no projectPath — set it in ~/.paseo/copenode/config.json");
@@ -66,6 +62,10 @@ export async function spawnWorkspace(
     "--new-workspace",
     "worktree", // v0: both tiers get a worktree; sandbox enforcement lands with workspace-sandbox
   ];
+  // Model selection is Paseo-layer config, set deliberately by the operator
+  // (see incident log 2026-11-18): e.g. opencode-go/glm-5.3-flash rides the
+  // OpenCode Go subscription instead of pay-as-you-go OpenCode Models credits.
+  if (model) args.push("--model", model);
   args.push(req.text);
   const { stdout } = await run("paseo", args, { cwd: projectPath });
   console.log("[copenode] paseo run:", stdout.slice(0, 400));

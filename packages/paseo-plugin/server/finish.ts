@@ -11,7 +11,8 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { basename } from "node:path";
+import { basename, join } from "node:path";
+import { homedir } from "node:os";
 import type { Ledger } from "@copenode/core";
 
 const run = promisify(execFile);
@@ -81,7 +82,10 @@ export async function trackRun(
       const me = agents.find((a) => a.id === opts.agentId);
       if (me) {
         if (typeof me.status === "string") observedStatus = me.status;
-        if (typeof me.cwd === "string") cwd = me.cwd;
+        if (typeof me.cwd === "string") {
+          // Paseo reports tildified paths; exec() never expands them.
+          cwd = me.cwd.startsWith("~") ? join(homedir(), me.cwd.slice(1)) : me.cwd;
+        }
       }
     } catch {
       // unparseable listing; observation stays at wait-based values

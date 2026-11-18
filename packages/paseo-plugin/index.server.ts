@@ -31,6 +31,7 @@ function readConfig(): {
   port: number;
   projectPath: string | null;
   provider: string | null;
+  model: string | null;
 } {
   const env = process.env;
   const baseDir = join(os.homedir(), ".paseo", "copenode");
@@ -47,7 +48,7 @@ function readConfig(): {
   // most often an agent that went config-hunting instead of doing its job.
   const KNOWN_KEYS = new Set([
     "ownerLabels", "allowlistedLabels", "limit", "projectPath",
-    "provider", "ledgerPath", "port",
+    "provider", "model", "ledgerPath", "port",
   ]);
   const unknownKeys = Object.keys(file).filter((k) => !KNOWN_KEYS.has(k));
   if (unknownKeys.length > 0) {
@@ -79,6 +80,8 @@ function readConfig(): {
     ?? (typeof file.projectPath === "string" ? file.projectPath : null);
   const provider = env.COPENODE_PROVIDER
     ?? (typeof file.provider === "string" ? file.provider : null);
+  const model = env.COPENODE_MODEL
+    ?? (typeof file.model === "string" ? file.model : null);
 
   if (provider !== null && !KNOWN_PROVIDERS.has(provider)) {
     throw new Error(
@@ -93,16 +96,18 @@ function readConfig(): {
     port,
     projectPath,
     provider,
+    model,
   };
 }
 
 export default function contribute(_server: PluginServerContext) {
-  const { config, ledgerPath, port, projectPath, provider } = readConfig();
-  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider });
+  const { config, ledgerPath, port, projectPath, provider, model } = readConfig();
+  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider, model });
   console.log(
     `[copenode] ingress on 127.0.0.1:${ingress.port()} · limit $${config.limit}/sender/24h · ` +
     `owner labels: ${config.ownerLabels.length} · sender labels: ${config.allowlistedLabels.length} · ` +
-    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ledger: ${ledgerPath}`,
+    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ` +
+    `model: ${model ?? "(provider default)"} · ledger: ${ledgerPath}`,
   );
   return () => {
     ingress.stop();
