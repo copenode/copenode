@@ -11,11 +11,14 @@
  *     "allowlistedLabels":  ["oc/telegram/alice"],
  *     "limit":              2,          // dollars / sender / 24h
  *     "projectPath":        "/home/uma/copenode-lab/demo-repo",
+ *     "provider":           "opencode",
+ *     "model":              "opencode-go/kimi-k3",
  *     "ledgerPath":         "~/.paseo/copenode/ledger.jsonl",
  *     "port":               6789
  *   }
  *   Env: COPENODE_PORT, COPENODE_LEDGER, COPENODE_LIMIT,
- *        COPENODE_OWNERS, COPENODE_SENDERS, COPENODE_PROJECT, COPENODE_CONFIG
+ *        COPENODE_OWNERS, COPENODE_SENDERS, COPENODE_PROJECT, COPENODE_CONFIG,
+ *        COPENODE_PROVIDER, COPENODE_MODEL
  */
 
 import os from "node:os";
@@ -31,6 +34,7 @@ function readConfig(): {
   port: number;
   projectPath: string | null;
   provider: string | null;
+  model: string | null;
 } {
   const env = process.env;
   const baseDir = join(os.homedir(), ".paseo", "copenode");
@@ -42,6 +46,24 @@ function readConfig(): {
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
+
+  // Policy config is operator-owned. Unknown keys are named and ignored —
+  // most often an agent that went config-hunting instead of doing its job.
+  const KNOWN_KEYS = new Set([
+    "ownerLabels", "allowlistedLabels", "limit", "projectPath",
+    "provider", "model", "ledgerPath", "port",
+  ]);
+  const unknownKeys = Object.keys(file).filter((k) => !KNOWN_KEYS.has(k));
+  if (unknownKeys.length > 0) {
+    console.error(
+      `[copenode] config: ignoring unknown key(s) ${unknownKeys.join(", ")} — ` +
+        "this file is operator-owned policy, not a general config surface",
+    );
+  }
+
+  // Fail closed on values: an invalid provider keeps the plugin DOWN
+  // (visible in `paseo plugin logs`) rather than failing mysteriously at spawn.
+  const KNOWN_PROVIDERS = new Set(["opencode", "claude", "codex", "copilot", "pi", "omp", "antigravity", "muse"]);
 
   const splitList = (v: string | undefined) =>
     (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -62,22 +84,34 @@ function readConfig(): {
   const provider = env.COPENODE_PROVIDER
     ?? (typeof file.provider === "string" ? file.provider : null);
 
+  if (provider !== null && !KNOWN_PROVIDERS.has(provider)) {
+    throw new Error(
+      `copenode config: unknown provider "${provider}". ` +
+        `Paseo providers are CLIs — one of ${[...KNOWN_PROVIDERS].join(", ")}. ` +
+        `(Model providers like opencode-go/* live inside OpenCode's own config, not here.)`,
+    );
+  }
+  const model = env.COPENODE_MODEL
+    ?? (typeof file.model === "string" ? file.model : null);
+
   return {
     config: { ownerLabels, allowlistedLabels, limit },
     ledgerPath,
     port,
     projectPath,
     provider,
+    model,
   };
 }
 
 export default function contribute(_server: PluginServerContext) {
-  const { config, ledgerPath, port, projectPath, provider } = readConfig();
-  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider });
+  const { config, ledgerPath, port, projectPath, provider, model } = readConfig();
+  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider, model });
   console.log(
     `[copenode] ingress on 127.0.0.1:${ingress.port()} · limit $${config.limit}/sender/24h · ` +
     `owner labels: ${config.ownerLabels.length} · sender labels: ${config.allowlistedLabels.length} · ` +
-    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ledger: ${ledgerPath}`,
+    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ` +
+    `model: ${model ?? "(default)"} · ledger: ${ledgerPath}`,
   );
   return () => {
     ingress.stop();

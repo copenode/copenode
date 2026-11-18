@@ -46,6 +46,7 @@ export async function spawnWorkspace(
   req: SpawnRequest,
   projectPath: string | null,
   provider: string | null,
+  model: string | null,
 ): Promise<SpawnResult> {
   if (!projectPath) {
     throw new Error("NOT_CONFIGURED: no projectPath — set it in ~/.paseo/copenode/config.json");
@@ -66,6 +67,9 @@ export async function spawnWorkspace(
     "--new-workspace",
     "worktree", // v0: both tiers get a worktree; sandbox enforcement lands with workspace-sandbox
   ];
+  // Paseo's agent provider stays "opencode"; OpenCode model providers such as
+  // "opencode-go" are selected through --model (e.g. opencode-go/kimi-k3).
+  if (model) args.push("--model", model);
   args.push(req.text);
   const { stdout } = await run("paseo", args, { cwd: projectPath });
   console.log("[copenode] paseo run:", stdout.slice(0, 400));

@@ -22,6 +22,8 @@ export interface IngressOptions {
   projectPath?: string | null;
   /** provider passed to `paseo run --provider` */
   provider?: string | null;
+  /** model passed to `paseo run --model` (e.g. opencode-go/kimi-k3) */
+  model?: string | null;
   /** how long to wait for an agent before judging it as timed out */
   finishTimeoutMs?: number;
   /** injected for tests; defaults to the real seam */
@@ -29,6 +31,7 @@ export interface IngressOptions {
     req: SpawnRequest,
     projectPath: string | null,
     provider: string | null,
+    model: string | null,
   ) => Promise<{ workspaceId: string | null; agentId: string | null }>;
 }
 
@@ -71,7 +74,7 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
             text: payload.text ?? "",
             threadRef: payload.threadRef,
             ledgerEntryId: decision.ledgerEntryId,
-          }, opts.projectPath ?? null, opts.provider ?? null)
+          }, opts.projectPath ?? null, opts.provider ?? null, opts.model ?? null)
             .then((result) => {
               res.writeHead(200, { "content-type": "application/json" });
               res.end(JSON.stringify({ ...decision, workspaceId: result.workspaceId, agentId: result.agentId }));
