@@ -87,6 +87,7 @@ export function decideInbound(
     tier,
     isolation: routing.isolation,
     workspaceId: null, // filled in by the workspace seam
+    agentId: null,
     ledgerEntryId: entry.id,
     budgetLevel: budget.level,
   };

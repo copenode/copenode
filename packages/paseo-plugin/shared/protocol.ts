@@ -23,6 +23,7 @@ export type SpawnResponseBody =
       tier: "owner" | "sender";
       isolation: "worktree" | "sandbox";
       workspaceId: string | null;
+      agentId: string | null;
       ledgerEntryId: string;
       budgetLevel: "ok" | "alert" | "exhausted";
     }

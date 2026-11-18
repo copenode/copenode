@@ -10,15 +10,17 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { createLedger, jsonlStore } from "@copenode/core";
 import { decideInbound, type BridgeConfig } from "./decide.ts";
-import { spawnWorkspace } from "./workspace.ts";
+import { spawnWorkspace, type SpawnRequest } from "./workspace.ts";
 
 export interface IngressOptions {
   config: BridgeConfig;
   ledgerPath: string;
   port: number;
   host?: string;
-  /** injected for tests; defaults to the real (throwing) seam */
-  spawn?: typeof spawnWorkspace;
+  /** project directory agents work in; null until configured */
+  projectPath?: string | null;
+  /** injected for tests; defaults to the real seam */
+  spawn?: (req: SpawnRequest, projectPath: string | null) => Promise<{ workspaceId: string | null; agentId: string | null }>;
 }
 
 export function startIngress(opts: IngressOptions): { stop: () => void; port: () => number } {
@@ -51,18 +53,19 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
             res.end(JSON.stringify(decision));
             return;
           }
-          // Allowed: hand to the workspace seam, then answer with the workspace id.
+          // Allowed: hand to the workspace seam, then answer with ids.
+          const payload = JSON.parse(body) as { text?: string; threadRef?: string };
           spawn({
             label: decision.label,
             tier: decision.tier,
             isolation: decision.isolation,
-            text: JSON.parse(body).text ?? "",
-            threadRef: JSON.parse(body).threadRef,
+            text: payload.text ?? "",
+            threadRef: payload.threadRef,
             ledgerEntryId: decision.ledgerEntryId,
-          })
-            .then((workspaceId) => {
+          }, opts.projectPath ?? null)
+            .then((result) => {
               res.writeHead(200, { "content-type": "application/json" });
-              res.end(JSON.stringify({ ...decision, workspaceId }));
+              res.end(JSON.stringify({ ...decision, workspaceId: result.workspaceId, agentId: result.agentId }));
             })
             .catch((err: unknown) => {
               const message = err instanceof Error ? err.message : String(err);
