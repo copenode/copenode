@@ -146,6 +146,16 @@ test("classifySender is default-deny and label-driven", () => {
   assert.equal(stranger.label, "oc/telegram/999");
 });
 
+test("trail filters by refId (thread of execution)", () => {
+  const ledger = createLedger();
+  const run = ledger.record({ identity: COLLEAGUE, action: { kind: "run" } });
+  ledger.record({ identity: COLLEAGUE, action: { kind: "run" }, refId: run.id, outcome: { status: "finished" } });
+  ledger.record({ identity: OWNER, action: { kind: "run" } });
+  const thread = ledger.trail({ refId: run.id });
+  assert.equal(thread.length, 1);
+  assert.equal(thread[0].outcome.status, "finished");
+});
+
 test("trust primitives hold (moved to trust.js, still exported)", () => {
   assert.equal(senderToLabel({ channel: "WhatsApp", senderId: "+1555 000-111" }), "oc/whatsapp/+1555000-111");
   assert.deepEqual(routingFor("owner"), { isolation: "worktree", scopedCredentials: false });

@@ -11,6 +11,7 @@ import { dirname } from "node:path";
 import { createLedger, jsonlStore } from "@copenode/core";
 import { decideInbound, type BridgeConfig } from "./decide.ts";
 import { spawnWorkspace, type SpawnRequest } from "./workspace.ts";
+import { trackRun } from "./finish.ts";
 
 export interface IngressOptions {
   config: BridgeConfig;
@@ -21,6 +22,8 @@ export interface IngressOptions {
   projectPath?: string | null;
   /** provider passed to `paseo run --provider` */
   provider?: string | null;
+  /** how long to wait for an agent before judging it as timed out */
+  finishTimeoutMs?: number;
   /** injected for tests; defaults to the real seam */
   spawn?: (
     req: SpawnRequest,
@@ -72,6 +75,17 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
             .then((result) => {
               res.writeHead(200, { "content-type": "application/json" });
               res.end(JSON.stringify({ ...decision, workspaceId: result.workspaceId, agentId: result.agentId }));
+              if (result.agentId) {
+                // Fire-and-forget: the finish hook judges the run and appends
+                // the truth to the ledger. The HTTP answer never waits for it.
+                void trackRun(ledger, {
+                  agentId: result.agentId,
+                  originalEntryId: decision.ledgerEntryId,
+                  timeoutMs: opts.finishTimeoutMs ?? 120_000,
+                }).catch((err: unknown) => {
+                  console.error("[copenode] finish tracking failed:", err instanceof Error ? err.message : err);
+                });
+              }
             })
             .catch((err: unknown) => {
               const message = err instanceof Error ? err.message : String(err);

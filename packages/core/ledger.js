@@ -229,7 +229,7 @@ export function createLedger({ store = memoryStore() } = {}) {
 
   /**
    * The trail: entries in order, filtered by attribution.
-   * @param {{ sender?: string, tier?: string, agent?: string, kind?: string }} [filter]
+   * @param {{ sender?: string, tier?: string, agent?: string, kind?: string, refId?: string }} [filter]
    */
   function trail(filter = {}) {
     return entries.filter((e) => {
@@ -237,6 +237,7 @@ export function createLedger({ store = memoryStore() } = {}) {
       if (filter.tier && e.identity.tier !== filter.tier) return false;
       if (filter.agent && e.identity.agent !== filter.agent) return false;
       if (filter.kind && e.action.kind !== filter.kind) return false;
+      if (filter.refId && e.refId !== filter.refId) return false;
       return true;
     });
   }

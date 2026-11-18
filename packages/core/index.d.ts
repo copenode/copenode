@@ -49,13 +49,13 @@ export function memoryStore(seed?: Array<Record<string, unknown>>): LedgerStore;
 export function jsonlStore(path: string): LedgerStore;
 
 export interface RecordInput {
-  identity: { sender: string; tier: TrustTier; agent?: string; node?: string };
-  decision?: { verdict?: "allow" | "refuse" | "flag"; rule?: string };
-  action?: { kind?: string; target?: string; digest?: string };
-  cost?: { tokens?: number; dollars?: number; durationMs?: number };
-  outcome?: { status?: string; artifactRef?: string };
-  refId?: string;
-  eval?: { judge: string; score?: number; verdict?: string; note?: string };
+  identity: { sender: string; tier: TrustTier; agent?: string | null; node?: string | null };
+  decision?: { verdict?: "allow" | "refuse" | "flag"; rule?: string | null };
+  action?: { kind?: string; target?: string | null; digest?: string | null };
+  cost?: { tokens?: number | null; dollars?: number | null; durationMs?: number | null };
+  outcome?: { status?: string; artifactRef?: string | null };
+  refId?: string | null;
+  eval?: { judge: string; score?: number | null; verdict?: string | null; note?: string | null };
 }
 
 export interface Ledger {
@@ -64,7 +64,7 @@ export interface Ledger {
     targetId: string,
     evaluation: { judge: "mechanical" | "model" | "human"; score?: number; verdict?: string; note?: string },
   ): LedgerEntry;
-  trail(filter?: { sender?: string; tier?: string; agent?: string; kind?: string }): LedgerEntry[];
+  trail(filter?: { sender?: string; tier?: string; agent?: string; kind?: string; refId?: string }): LedgerEntry[];
   evalsOf(entryId: string): Array<{ judge: string; score: number | null; verdict: string | null; note: string | null }>;
   verify(): { ok: true; entries: number } | { ok: false; at: string; reason: string };
   get(id: string): LedgerEntry | null;
