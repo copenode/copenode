@@ -10,6 +10,11 @@ Holds the whole center, on purpose:
 - **Identity mapping** — channel sender ↔ stable node label (metering key)
 - **Routing policy** — trust tiers → workspace isolation (worktree vs sandbox)
 - **Metering ledger** — one event spine, three lenses: cost, trail, evals
+- **Budget guard** — per-sender caps read from the ledger; outer tiers get walls, the owner gets instruments
+
+## Prerequisites
+
+- Node.js ≥ 20 (ESM). Zero runtime dependencies.
 
 ## Trust
 
@@ -52,5 +57,22 @@ ledger.verify(); // -> { ok: true, entries: 3 }
 Judges are `mechanical` (tests, lint, schema), `model` (rubrics), or `human`
 (the approval card). The ledger never judges — it guarantees attribution,
 integrity, and late truth.
+
+## Budgets
+
+Caps read from the ledger — the guard keeps no counters, so it can never
+disagree with history. Doctrine: outer tiers get walls, the owner gets
+instruments.
+
+```js
+import { createBudgetGuard } from "@copenode/core";
+
+const guard = createBudgetGuard({ ledger, limit: 2 }); // $2 / sender / 24h
+
+guard.check({ sender: label, tier: "sender", pendingDollars: 0.6 });
+// -> { allowed: false, level: "exhausted", enforcement: "block", ... }
+// record the refusal like any decision:
+// ledger.record({ identity, decision: { verdict: "refuse", rule: "budget-exhausted" }, ... })
+```
 
 MIT. See the [monorepo](https://github.com/copenode/copenode) for status.

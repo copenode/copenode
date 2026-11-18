@@ -10,7 +10,8 @@
   "files": [
     "index.js",
     "trust.js",
-    "ledger.js"
+    "ledger.js",
+    "budget.js"
   ],
   "scripts": {
     "test": "node --test"

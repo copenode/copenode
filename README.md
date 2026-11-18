@@ -54,6 +54,12 @@ copenode is that foundation, built thin: a core of identity, trust tiers, routin
 > → diff summary lands in the thread
 > → metering ledger records `$0.42` against Alice's monthly cap
 
+## Prerequisites
+
+- **Node.js ≥ 20** — the npm packages are ESM with zero runtime dependencies
+- A running [OpenClaw](https://github.com/openclaw/openclaw) gateway with a paired channel (WhatsApp for the first integration)
+- A running [Paseo](https://github.com/getpaseo/paseo) daemon, local or on a VPS
+
 ## Install
 
 > ⚠️ **Status: pre-release.** The packages below are the intended distribution shape; see [Status](#status) for what exists today.

@@ -20,3 +20,4 @@ export {
   entryHash,
   GENESIS_HASH,
 } from "./ledger.js";
+export { createBudgetGuard } from "./budget.js";
