@@ -27,7 +27,8 @@ export interface FinishObservation {
 
 /** Pure: the mechanical judge — cheap, deterministic, no model. */
 export function mechanicalVerdict(obs: FinishObservation): { verdict: "pass" | "fail"; note: string } {
-  if (!obs.finishedClean) {
+  const badStatus = /error|fail/i.test(obs.observedStatus);
+  if (!obs.finishedClean || badStatus) {
     return { verdict: "fail", note: `did not finish cleanly: ${obs.error ?? obs.observedStatus}` };
   }
   if (obs.changedFiles.length === 0) {

@@ -28,3 +28,9 @@ test("mechanical verdict: unclean finish fails with the reason", () => {
   assert.equal(v.verdict, "fail");
   assert.match(v.note, /did not finish cleanly/);
 });
+
+test("mechanical verdict: error status fails even with no changes (not conversational)", () => {
+  const v = mechanicalVerdict(obs({ observedStatus: "error" }));
+  assert.equal(v.verdict, "fail");
+  assert.match(v.note, /error/);
+});
