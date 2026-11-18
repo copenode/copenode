@@ -116,11 +116,13 @@ copenode/
 
 | Capability | State |
 | --- | --- |
-| Monorepo + plugin scaffolds | 🚧 in progress |
-| Bridge: spawn/steer/collect from chat | 🚧 in progress |
-| Approval cards in channel | 📋 next |
-| Per-sender metering + budgets | 📋 next |
-| Sandbox routing policy | 📋 planned |
+| Metering ledger: cost, trail, evals (hash-chained, append-only) | ✅ `@copenode/core` |
+| Trust-tier routing + per-sender budgets (tiered enforcement) | ✅ `@copenode/core` |
+| CLI: `copenode trail` / `copenode verify` | ✅ `@copenode/cli` |
+| Provenance publishing from CI | ✅ GitHub Actions |
+| Bridge: spawn/steer/collect from chat | 🚧 Phase 2 |
+| Approval cards in channel | 📋 Phase 2 |
+| Mechanical eval executor (tests/lint in the worktree) | 📋 Phase 2 |
 | Delivery policies (quiet hours, digests) | 📋 planned |
 
 Early, honest, moving. Issues and PRs welcome — including "here's the flow I want" feature requests; they shape the roadmap.
