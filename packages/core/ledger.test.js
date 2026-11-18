@@ -11,6 +11,7 @@ import {
   GENESIS_HASH,
   senderToLabel,
   routingFor,
+  classifySender,
 } from "./index.js";
 
 const OWNER = { sender: "oc/whatsapp/+1555000111", tier: "owner", agent: "paseo/main", node: "paseo-local" };
@@ -131,6 +132,18 @@ test("jsonl store tolerates a torn tail, refuses mid-file corruption", () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("classifySender is default-deny and label-driven", () => {
+  const policy = { ownerLabels: ["oc/whatsapp/+1555000111"], allowlistedLabels: ["oc/whatsapp/+1555000222"] };
+  const owner = classifySender({ channel: "whatsapp", senderId: "+1555000111" }, policy);
+  assert.deepEqual(owner, { label: "oc/whatsapp/+1555000111", tier: "owner" });
+  const colleague = classifySender({ channel: "whatsapp", senderId: "+1555000222" }, policy);
+  assert.deepEqual(colleague, { label: "oc/whatsapp/+1555000222", tier: "sender" });
+  const stranger = classifySender({ channel: "telegram", senderId: "999" }, policy);
+  assert.equal(stranger.tier, null);
+  assert.equal(stranger.reason, "sender-not-allowlisted");
+  assert.equal(stranger.label, "oc/telegram/999");
 });
 
 test("trust primitives hold (moved to trust.js, still exported)", () => {

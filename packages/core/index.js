@@ -12,7 +12,7 @@
 
 export const CORE_VERSION = "0.1.0";
 
-export { senderToLabel, routingFor, TIERS } from "./trust.js";
+export { senderToLabel, routingFor, classifySender, TIERS } from "./trust.js";
 export {
   createLedger,
   memoryStore,

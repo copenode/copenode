@@ -34,6 +34,25 @@ export function senderToLabel({ channel, senderId }) {
 }
 
 /**
+ * Classify an inbound sender against the trust model. Default-deny:
+ * unknown senders get no tier and a reason — the caller refuses and
+ * records it. The tier assignment is configuration (whose prompts are
+ * yours, whose are allowlisted colleagues'), the shape is doctrine.
+ *
+ * @param {{ channel: string, senderId: string }} from
+ * @param {{ ownerLabels?: string[], allowlistedLabels?: string[] }} [policy]
+ *   labels produced by senderToLabel, e.g. ["oc/whatsapp/+336..."]
+ * @returns {{ label: string, tier: "owner" | "sender" } | { label: string, tier: null, reason: string }}
+ */
+export function classifySender(from, policy = {}) {
+  const { ownerLabels = [], allowlistedLabels = [] } = policy;
+  const label = senderToLabel(from);
+  if (ownerLabels.includes(label)) return { label, tier: "owner" };
+  if (allowlistedLabels.includes(label)) return { label, tier: "sender" };
+  return { label, tier: null, reason: "sender-not-allowlisted" };
+}
+
+/**
  * Routing decision for a workspace, from the trust model:
  * prompts you didn't type never run unsandboxed.
  *

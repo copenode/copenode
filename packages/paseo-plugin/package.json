@@ -1,0 +1,50 @@
+{
+  "name": "@copenode/paseo-plugin",
+  "version": "0.0.1",
+  "description": "copenode daemon-side plugin for Paseo: workspace lifecycle per sender label, sandbox routing, metered spawns, and the ingress the OpenClaw side posts to.",
+  "type": "module",
+  "main": "index.server.ts",
+  "files": [
+    "paseo-plugin.json",
+    "index.server.ts",
+    "shared/",
+    "server/"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "paseo",
+    "paseo-plugin",
+    "copenode",
+    "openclaw",
+    "agents",
+    "orchestration",
+    "metering"
+  ],
+  "dependencies": {
+    "@copenode/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "^0.16.2",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/copenode/copenode.git",
+    "directory": "packages/paseo-plugin"
+  },
+  "homepage": "https://copenode.com",
+  "bugs": {
+    "url": "https://github.com/copenode/copenode/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

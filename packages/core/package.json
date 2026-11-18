@@ -9,10 +9,12 @@
   },
   "files": [
     "index.js",
+    "index.d.ts",
     "trust.js",
     "ledger.js",
     "budget.js"
   ],
+  "types": "./index.d.ts",
   "scripts": {
     "test": "node --test"
   },
