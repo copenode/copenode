@@ -29,3 +29,4 @@ export {
   GENESIS_HASH,
 } from "./ledger.js";
 export { createBudgetGuard } from "./budget.js";
+export { digestTree, randomToken, evaluateStartup } from "./integrity.js";

@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+        \  |  /
+      --- ( o ) ---    copenode — gravity for your agent swarm
+        /  |  \        autonomy, engineered around systemic stability
+
+  Static by design: no requestAnimationFrame, no canvas loops, no continuous
+  animations. One SVG figure, a CSS starfield, hover transitions only.
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>copenode — gravity for your agent swarm</title>
+  <meta name="description" content="copenode is the policy spine beneath agent nodes — identity, trust, and metering as gravity. A message becomes a sandboxed agent on your machine; the diff returns to the thread; every action is metered.">
+  <meta name="theme-color" content="#08090b">
+  <meta name="color-scheme" content="dark">
+  <link rel="canonical" href="https://copenode.com/">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="alternate icon" type="image/jpeg" href="assets/copenode01.jpg">
+
+  <!-- Open Graph -->
+  <meta property="og:url" content="https://copenode.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="copenode">
+  <meta property="og:title" content="copenode — gravity for your agent swarm">
+  <meta property="og:description" content="The policy spine beneath agent nodes. Autonomy, engineered around systemic stability.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="copenode — gravity for your agent swarm">
+  <meta name="twitter:description" content="The policy spine beneath agent nodes. Autonomy, engineered around systemic stability.">
+
+  <style>
+    :root {
+      --bg: #08090b;
+      --panel: rgba(255, 255, 255, 0.02);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-soft: rgba(255, 255, 255, 0.05);
+      --text: #f0f2f5;
+      --muted: #8b949e;
+      --accent: #38bdf8;
+      --sun: #fbbf24;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    ::selection { background: rgba(56, 189, 248, 0.28); color: var(--text); }
+
+    a { color: inherit; text-decoration: none; }
+
+    :focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+    /* ---------- static sky: stars + galaxy glows, zero runtime cost ---------- */
+    .sky {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 31% 44%, rgba(255, 255, 255, 0.42) 0.8px, transparent 1.5px),
+        radial-gradient(circle at 68% 17%, rgba(255, 255, 255, 0.26) 0.8px, transparent 1.5px),
+        radial-gradient(circle at 12% 83%, rgba(139, 148, 158, 0.30) 0.8px, transparent 1.5px),
+        radial-gradient(circle at 86% 61%, rgba(255, 255, 255, 0.18) 0.7px, transparent 1.4px);
+      background-size: 273px 273px, 349px 349px, 421px 421px, 181px 181px;
+      background-position: 19px 29px, 123px 91px, 244px 197px, 71px 47px;
+    }
+    .sky::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(640px 460px at 72% 8%, rgba(56, 189, 248, 0.065), transparent 70%),
+        radial-gradient(820px 560px at 8% 88%, rgba(129, 140, 248, 0.055), transparent 70%),
+        radial-gradient(520px 380px at 50% 118%, rgba(251, 191, 36, 0.03), transparent 70%);
+    }
+
+    .page { position: relative; z-index: 1; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+
+    /* ---------- topbar ---------- */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(8, 9, 11, 0.72);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .topbar .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 58px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+    }
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      filter: invert(1) grayscale(1);
+      display: block;
+    }
+    .brand span {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      letter-spacing: 0.04em;
+    }
+    .topnav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+    }
+    .topnav a {
+      color: var(--muted);
+      transition: color 0.15s ease;
+    }
+    .topnav a:hover { color: var(--text); }
+    .topnav a.ext::after {
+      content: "↗";
+      margin-left: 3px;
+      font-size: 10px;
+      opacity: 0.7;
+    }
+
+    /* ---------- sections ---------- */
+    section { border-top: 1px solid var(--border-soft); padding: 78px 0; }
+    section.hero { border-top: none; padding: 72px 0 64px; }
+
+    .kicker {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 26px;
+    }
+    .kicker b { color: var(--accent); font-weight: 400; }
+
+    h1, h2 { text-wrap: balance; }
+
+    .hero .lede {
+      margin-top: 26px;
+      max-width: 620px;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.7;
+    }
+    .hero .lede em {
+      font-style: normal;
+      color: var(--text);
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-top: 34px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 18px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--panel);
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      cursor: pointer;
+    }
+    .btn:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.16); }
+    .btn.accent { border-color: rgba(56, 189, 248, 0.35); color: var(--accent); }
+    .btn.accent:hover { background: rgba(56, 189, 248, 0.08); border-color: rgba(56, 189, 248, 0.55); }
+    .btn .k { color: var(--muted); }
+    .btn.accent .k { color: rgba(56, 189, 248, 0.65); }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 18px;
+      margin-top: 22px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: var(--panel);
+    }
+    .badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+    }
+
+    /* ---------- figure ---------- */
+    .figure {
+      margin: 64px auto 0;
+      max-width: 620px;
+      text-align: center;
+    }
+    .figure svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .figcap {
+      margin-top: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.9;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+    }
+    .figcap .sep { opacity: 0.4; padding: 0 8px; }
+    .figcap .c-accent { color: var(--accent); }
+    .figcap .c-sun { color: var(--sun); }
+
+    /* orbit diagram interactions: hover only, nothing runs on its own */
+    .orbit-diagram .node { cursor: default; }
+    .orbit-diagram .node .p { transition: fill 0.15s ease, r 0.15s ease; }
+    .orbit-diagram .node .lbl { transition: fill 0.15s ease; }
+    .orbit-diagram .node .lead { transition: stroke 0.15s ease; }
+    .orbit-diagram .node:hover .p { fill: var(--accent); }
+    .orbit-diagram .node:hover .lbl { fill: var(--accent); }
+    .orbit-diagram .node:hover .lead { stroke: rgba(56, 189, 248, 0.5); }
+    .orbit-diagram .ring { transition: stroke 0.15s ease; }
+    .orbit-diagram .orbit-band:hover .ring { stroke: rgba(255, 255, 255, 0.22); }
+
+    /* ---------- doctrine ---------- */
+    h2.sec-title {
+      font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+      font-weight: 550;
+      letter-spacing: -0.02em;
+      margin-top: -12px;
+    }
+    .sec-intro {
+      margin-top: 14px;
+      max-width: 560px;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .doc-list { margin-top: 44px; }
+    .doc-row {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 8px 28px;
+      padding: 30px 0;
+    }
+    .doc-row + .doc-row { border-top: 1px solid var(--border-soft); }
+    .doc-no {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: rgba(56, 189, 248, 0.82);
+      padding-top: 5px;
+      letter-spacing: 0.06em;
+    }
+    .doc-row h3 {
+      font-size: 1.05rem;
+      font-weight: 550;
+      letter-spacing: -0.01em;
+    }
+    .doc-row p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.94rem;
+      max-width: 620px;
+    }
+    .doc-row p code, .sec-intro code, .hero .lede code {
+      font-family: var(--font-mono);
+      font-size: 0.86em;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.07);
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+
+    /* ---------- bridge ---------- */
+    .bridge-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      gap: 40px;
+      margin-top: 44px;
+      align-items: start;
+    }
+    .term {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+    .term-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .term-bar i {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.10);
+    }
+    .term-bar span {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+    .term pre {
+      padding: 20px 20px 24px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.75;
+      color: var(--muted);
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .term pre .hl { color: var(--text); }
+    .term pre .acc { color: var(--accent); }
+    .term pre .say { color: var(--sun); }
+
+    .flow-list { display: grid; gap: 0; }
+    .flow-step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 16px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .flow-step:last-child { border-bottom: none; }
+    .flow-no {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: rgba(56, 189, 248, 0.82);
+      padding-top: 3px;
+    }
+    .flow-step p { font-size: 0.9rem; color: var(--muted); }
+    .flow-step p b { color: var(--text); font-weight: 550; }
+
+    /* ---------- packages ---------- */
+    .pkg-list { margin-top: 44px; }
+    .pkg-row {
+      display: grid;
+      grid-template-columns: minmax(200px, 280px) 1fr auto;
+      gap: 10px 30px;
+      align-items: center;
+      padding: 21px 0;
+    }
+    .pkg-row + .pkg-row { border-top: 1px solid var(--border-soft); }
+    .pkg-name {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .pkg-tag {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .pkg-tag.shipped { color: var(--accent); border-color: rgba(56, 189, 248, 0.3); }
+    .pkg-tag.building { color: var(--sun); border-color: rgba(251, 191, 36, 0.3); }
+    .pkg-desc { color: var(--muted); font-size: 0.9rem; }
+    .pkg-cmd {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pkg-cmd code { color: var(--text); }
+
+    .copy {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .copy:hover { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); }
+    .copy.done { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); }
+
+    /* ---------- status ---------- */
+    .status-list { margin-top: 44px; }
+    .status-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 24px;
+      padding: 15px 0;
+      align-items: baseline;
+    }
+    .status-row + .status-row { border-top: 1px solid var(--border-soft); }
+    .status-tag {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+    }
+    .status-tag.shipped { color: var(--accent); }
+    .status-tag.building { color: var(--sun); }
+    .status-tag.planned { color: var(--muted); }
+    .status-row .what { font-size: 0.92rem; color: var(--muted); }
+    .status-row .what b { color: var(--text); font-weight: 550; }
+
+    .status-note {
+      margin-top: 30px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .status-note a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+    .status-note a:hover { text-decoration-color: rgba(56, 189, 248, 0.4); }
+
+    /* ---------- footer ---------- */
+    footer { border-top: 1px solid var(--border-soft); padding: 70px 0 40px; position: relative; z-index: 1; }
+    /* shared brand block — masthead (top) and footer (bottom) */
+    .logo-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 140px;
+      height: 140px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: var(--panel);
+      margin-bottom: 30px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    }
+    .logo-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 19px;
+      filter: invert(1) grayscale(1);
+      display: block;
+    }
+    .wordmark {
+      font-size: clamp(3rem, 9vw, 5.5rem);
+      font-weight: 550;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--text);
+    }
+    .tagline {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 520px;
+    }
+    .foot-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 32px;
+      margin-top: 54px;
+      padding-top: 34px;
+      border-top: 1px solid var(--border-soft);
+    }
+    .foot-col h3 {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-weight: 400;
+      margin-bottom: 14px;
+    }
+    .foot-col ul { list-style: none; display: grid; gap: 9px; }
+    .foot-col a {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--muted);
+      transition: color 0.15s ease;
+    }
+    .foot-col a:hover { color: var(--accent); }
+    .foot-base {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 26px;
+      margin-top: 52px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+    }
+
+    /* ---------- responsive ---------- */
+    @media (max-width: 860px) {
+      .bridge-grid { grid-template-columns: 1fr; }
+      .pkg-row { grid-template-columns: 1fr; gap: 8px; }
+      .pkg-cmd { margin-left: 0; }
+    }
+    @media (max-width: 640px) {
+      section { padding: 56px 0; }
+      section.hero { padding: 64px 0 48px; }
+      .topnav a:not(.keep) { display: none; }
+      .doc-row { grid-template-columns: 1fr; gap: 4px; }
+      .status-row { grid-template-columns: 86px 1fr; gap: 14px; }
+      .foot-grid { grid-template-columns: 1fr; }
+      .figure { margin-top: 48px; }
+      .term pre { font-size: 11px; padding: 16px 14px 18px; }
+    }
+    /* the diagram's labels live in svg user units and would shrink below
+       legibility on phones — keep the figure, drop the labels */
+    @media (max-width: 560px) {
+      .orbit-diagram .lbl { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sky" aria-hidden="true"></div>
+
+  <div class="page">
+
+    <!-- ================= topbar ================= -->
+    <div class="topbar">
+      <div class="wrap">
+        <a class="brand" href="https://copenode.com" aria-label="copenode home">
+          <img src="assets/copenode01.jpg" alt="copenode logo — copernican orbits" width="36" height="36">
+          <span>copenode</span>
+        </a>
+        <nav class="topnav" aria-label="Primary">
+          <a href="https://github.com/copenode/copenode" class="ext">github</a>
+          <a href="https://www.npmjs.com/package/@copenode/core" class="ext">npm</a>
+          <a href="https://discord.gg/WXhGUuG4R" class="ext">discord</a>
+          <a href="https://x.com/copenodesys" class="ext keep">x</a>
+        </nav>
+      </div>
+    </div>
+
+    <main>
+
+      <!-- ================= 01 · hero ================= -->
+      <section class="hero" id="system">
+        <div class="wrap">
+          <div class="hero-logo">
+            <img src="assets/copenode01.jpg" alt="copenode logo — copernican orbits" width="180" height="180">
+          </div>
+          <p class="hero-wordmark">copenode</p>
+
+          <p class="kicker"><b>01</b> / the system</p>
+          <h1>Gravity for your agent swarm.</h1>
+          <p class="lede">
+            copenode is the policy spine beneath your agent nodes — gateways,
+            coding-agent fleets, schedulers, sandboxes. It answers the four
+            questions that decide whether autonomy is safe to grant:
+            <em>who asked, what may they reach, how much may it cost, and how bad can it get.</em>
+          </p>
+
+          <div class="cta-row">
+            <a class="btn accent" href="https://github.com/copenode/copenode/blob/main/docs/MANIFESTO.md">
+              read the manifesto <span aria-hidden="true">↗</span>
+            </a>
+            <button class="btn" type="button" data-copy="npm i @copenode/core" aria-label="Copy install command: npm i @copenode/core">
+              <span class="k">$</span> npm i @copenode/core
+              <span class="copy-label" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="meta-row">
+            <span class="badge"><span class="dot"></span> v0 · experimental</span>
+            <span>early, honest, moving</span>
+            <span aria-hidden="true">·</span>
+            <span>identity · trust · metering</span>
+          </div>
+
+          <!-- the system in one frame — static copernican diagram -->
+          <figure class="figure">
+            <svg class="orbit-diagram" viewBox="0 0 720 720" role="img"
+                 aria-label="Copernican diagram: the copenode policy spine at the center with sovereign agent nodes in orbits; trust tiers ring the center, comets pass on a dashed outer orbit">
+              <defs>
+                <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0" stop-color="#fbbf24" stop-opacity="0.5"/>
+                  <stop offset="0.45" stop-color="#fbbf24" stop-opacity="0.1"/>
+                  <stop offset="1" stop-color="#fbbf24" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+
+              <!-- frame, echoing the logo -->
+              <rect x="24" y="24" width="672" height="672" rx="48" fill="none"
+                    stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+
+              <!-- rings: owner → sender → system, comet dashed -->
+              <g class="orbit-band">
+                <circle class="ring" cx="360" cy="360" r="70" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="1"/>
+                <circle class="ring" cx="360" cy="360" r="130" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="1"/>
+                <circle class="ring" cx="360" cy="360" r="190" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/>
+                <circle class="ring" cx="360" cy="360" r="250" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+                <circle class="ring" cx="360" cy="360" r="310" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="1" stroke-dasharray="3 9"/>
+              </g>
+
+              <!-- astrolabe ticks on the outer ring -->
+              <g stroke="rgba(255,255,255,0.20)" stroke-width="1">
+                <line x1="360" y1="50"  x2="360" y2="58"  transform="rotate(0 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(15 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(30 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(45 360 360)"/>
+                <line x1="360" y1="50"  x2="360" y2="58"  transform="rotate(60 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(75 360 360)"/>
+                <line x1="360" y1="48"  x2="360" y2="58"  transform="rotate(90 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(105 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(120 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(135 360 360)"/>
+                <line x1="360" y1="50"  x2="360" y2="58"  transform="rotate(150 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(165 360 360)"/>
+                <line x1="360" y1="48"  x2="360" y2="58"  transform="rotate(180 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(195 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(210 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(225 360 360)"/>
+                <line x1="360" y1="50"  x2="360" y2="58"  transform="rotate(240 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(255 360 360)"/>
+                <line x1="360" y1="48"  x2="360" y2="58"  transform="rotate(270 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(285 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(300 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(315 360 360)"/>
+                <line x1="360" y1="50"  x2="360" y2="58"  transform="rotate(330 360 360)"/>
+                <line x1="360" y1="52"  x2="360" y2="58"  transform="rotate(345 360 360)"/>
+              </g>
+
+              <!-- the sun: policy spine -->
+              <circle cx="360" cy="360" r="92" fill="url(#sunGlow)"/>
+              <g stroke="#fbbf24" stroke-width="2" stroke-linecap="round" opacity="0.85">
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(0 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(22.5 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(45 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(67.5 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(90 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(112.5 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(135 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(157.5 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(180 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(202.5 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(225 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(247.5 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(270 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(292.5 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="320" transform="rotate(315 360 360)"/>
+                <line x1="360" y1="330" x2="360" y2="326" transform="rotate(337.5 360 360)"/>
+              </g>
+              <circle cx="360" cy="360" r="15" fill="#fcd34d"/>
+              <circle cx="360" cy="360" r="15" fill="none" stroke="rgba(251,191,36,0.5)" stroke-width="1"/>
+
+              <!-- sovereign nodes -->
+              <g font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10.5" fill="rgba(240,242,245,0.72)">
+                <!-- openclaw · gateway — orbit 2 -->
+                <g class="node">
+                  <circle class="p" cx="253.5" cy="285.4" r="5" fill="#f0f2f5" opacity="0.9"/>
+                  <text class="lbl" x="241" y="289" text-anchor="end">openclaw · gateway</text>
+                </g>
+                <!-- paseo · daemon — orbit 3 -->
+                <g class="node">
+                  <circle class="p" cx="532.2" cy="279.7" r="5" fill="#f0f2f5" opacity="0.9"/>
+                  <text class="lbl" x="544" y="283" text-anchor="start">paseo · daemon</text>
+                </g>
+                <!-- acp harnesses — orbit 3 -->
+                <g class="node">
+                  <circle class="p" cx="279.7" cy="187.8" r="5" fill="#f0f2f5" opacity="0.9"/>
+                  <text class="lbl" x="268" y="185" text-anchor="end">acp harnesses</text>
+                </g>
+                <!-- channels — orbit 1 -->
+                <g class="node">
+                  <circle class="p" cx="372.2" cy="291.1" r="4.5" fill="#f0f2f5" opacity="0.9"/>
+                  <text class="lbl" x="383" y="288" text-anchor="start">channels</text>
+                </g>
+                <!-- machines · vps — orbit 4 -->
+                <g class="node">
+                  <circle class="p" cx="143.5" cy="485" r="5" fill="#f0f2f5" opacity="0.9"/>
+                  <text class="lbl" x="131" y="489" text-anchor="end">machines · vps</text>
+                </g>
+                <!-- scheduler — orbit 4 -->
+                <g class="node">
+                  <circle class="p" cx="576.5" cy="485" r="5" fill="#f0f2f5" opacity="0.9"/>
+                  <text class="lbl" x="588" y="489" text-anchor="start">scheduler</text>
+                </g>
+                <!-- comet — dashed outer orbit -->
+                <g class="node">
+                  <line x1="537.8" y1="106.2" x2="551.6" y2="97.4" stroke="rgba(240,242,245,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle class="p" cx="537.8" cy="106.2" r="3.5" fill="#f0f2f5" opacity="0.9"/>
+                  <text class="lbl" x="556" y="103" text-anchor="start">comet · one-shot</text>
+                </g>
+              </g>
+            </svg>
+
+            <figcaption class="figcap">
+              center: <span class="c-sun">policy spine</span> — identity · trust · metering
+              <span class="sep">|</span>
+              rings: <span class="c-accent">owner → sender → system</span>
+              <span class="sep">|</span>
+              dashed: comet, one-shot
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ================= 02 · doctrine ================= -->
+      <section id="doctrine">
+        <div class="wrap">
+          <p class="kicker"><b>02</b> / doctrine</p>
+          <h2 class="sec-title">Five laws, written day one.</h2>
+          <p class="sec-intro">
+            Copernicus didn't command the planets — he chose a center that made
+            their motion coherent. copenode is that chosen center for agent systems.
+          </p>
+
+          <div class="doc-list">
+            <div class="doc-row">
+              <span class="doc-no">01</span>
+              <div>
+                <h3>Autonomy is the goal.</h3>
+                <p>Planets carry their own momentum. Agents should act without waiting for you.</p>
+              </div>
+            </div>
+            <div class="doc-row">
+              <span class="doc-no">02</span>
+              <div>
+                <h3>Stability is what buys it.</h3>
+                <p>An orbit is not a cage — it is what makes motion coherent instead of chaotic. Every grant of autonomy ships with a systemic bound.</p>
+              </div>
+            </div>
+            <div class="doc-row">
+              <span class="doc-no">03</span>
+              <div>
+                <h3>Trust is tiered, not binary.</h3>
+                <p><code>owner</code> → worktree. <code>sender</code> → sandbox. <code>system</code> → contained. Prompts you didn't type never run unsandboxed.</p>
+              </div>
+            </div>
+            <div class="doc-row">
+              <span class="doc-no">04</span>
+              <div>
+                <h3>Every action is metered.</h3>
+                <p>An ephemeris, not just a bill: each ledger entry carries what it <b>cost</b>, a <b>trail</b> of what happened and why, and <b>evals</b> of how well it went. One spine, three lenses.</p>
+              </div>
+            </div>
+            <div class="doc-row">
+              <span class="doc-no">05</span>
+              <div>
+                <h3>Nodes stay sovereign.</h3>
+                <p>The sun does not consume the planets. copenode orchestrates nodes; it does not replace them. Adapters, not forks.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 03 · the bridge ================= -->
+      <section id="bridge">
+        <div class="wrap">
+          <p class="kicker"><b>03</b> / the first orbit</p>
+          <h2 class="sec-title">A message becomes an agent. The diff returns to the thread.</h2>
+          <p class="sec-intro">
+            The first integration bridges <b>openclaw</b> — the open-source assistant
+            living in your chat channels — with <b>paseo</b>, the environment that runs
+            coding agents in parallel git worktrees on your machines.
+          </p>
+
+          <div class="bridge-grid">
+            <div class="term">
+              <div class="term-bar"><i></i><i></i><i></i><span>copenode · topology</span></div>
+<pre> whatsapp ──▶ openclaw gateway ──▶ <span class="acc">copenode</span> ──▶ paseo daemon
+               (channels,          (bridge,    (worktrees, swarms,
+                pairing, people)    metering)   schedules, review)
+                                  ◀─────────────────────
+                      <span class="say">"done. 2 files changed. $0.42 on alice's cap."</span></pre>
+            </div>
+
+            <div class="flow-list">
+              <div class="flow-step">
+                <span class="flow-no">01</span>
+                <p><b>alice sends</b> — "can you fix the flaky login test?"</p>
+              </div>
+              <div class="flow-step">
+                <span class="flow-no">02</span>
+                <p><b>openclaw pairs</b> her to a restricted agent</p>
+              </div>
+              <div class="flow-step">
+                <span class="flow-no">03</span>
+                <p><b>copenode routes</b> — sandboxed workspace, scoped keys, her tier enforced</p>
+              </div>
+              <div class="flow-step">
+                <span class="flow-no">04</span>
+                <p><b>the agent runs</b> the fix under a cheap worker model</p>
+              </div>
+              <div class="flow-step">
+                <span class="flow-no">05</span>
+                <p><b>approval</b> — a permission card lands in the thread; alice approves</p>
+              </div>
+              <div class="flow-step">
+                <span class="flow-no">06</span>
+                <p><b>diff + ledger</b> — summary in the thread · $0.42 against alice's monthly cap</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 04 · packages ================= -->
+      <section id="packages">
+        <div class="wrap">
+          <p class="kicker"><b>04</b> / packages</p>
+          <h2 class="sec-title">Thin packages around a light core.</h2>
+
+          <div class="pkg-list">
+            <div class="pkg-row">
+              <span class="pkg-name">@copenode/core <span class="pkg-tag shipped">shipped</span></span>
+              <span class="pkg-desc">bridge protocol · metering ledger · trust-tier policy engine</span>
+              <span class="pkg-cmd"><code>npm i @copenode/core</code>
+                <button class="copy" type="button" data-copy="npm i @copenode/core" aria-label="Copy command">copy</button>
+              </span>
+            </div>
+            <div class="pkg-row">
+              <span class="pkg-name">copenode <span class="pkg-tag shipped">shipped</span></span>
+              <span class="pkg-desc">meta package — reserves the name, points to the code</span>
+              <span class="pkg-cmd"><code>npm i copenode</code>
+                <button class="copy" type="button" data-copy="npm i copenode" aria-label="Copy command">copy</button>
+              </span>
+            </div>
+            <div class="pkg-row">
+              <span class="pkg-name">@copenode/cli <span class="pkg-tag shipped">shipped</span></span>
+              <span class="pkg-desc"><code>copenode trail</code> / <code>copenode verify</code> — read the ledger, check the chain</span>
+              <span class="pkg-cmd"><code>npm i @copenode/cli</code>
+                <button class="copy" type="button" data-copy="npm i @copenode/cli" aria-label="Copy command">copy</button>
+              </span>
+            </div>
+            <div class="pkg-row">
+              <span class="pkg-name">copenode/paseo-plugin <span class="pkg-tag building">building</span></span>
+              <span class="pkg-desc">daemon-side: workspace lifecycle, sandbox hooks, usage events</span>
+              <span class="pkg-cmd"><code>paseo plugin add copenode/paseo-plugin</code></span>
+            </div>
+            <div class="pkg-row">
+              <span class="pkg-name">@copenode/openclaw-plugin <span class="pkg-tag building">building</span></span>
+              <span class="pkg-desc">gateway-side: channel tools, approval cards, diff rendering</span>
+              <span class="pkg-cmd"><code>openclaw plugin install @copenode/openclaw-plugin</code></span>
+            </div>
+          </div>
+
+          <p class="status-note" style="margin-top: 26px;">
+            credentials never move — each daemon keeps its own keys; sandboxed agents get short-lived, task-scoped ones.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= 05 · status ================= -->
+      <section id="status">
+        <div class="wrap">
+          <p class="kicker"><b>05</b> / status</p>
+          <h2 class="sec-title">Early, honest, moving.</h2>
+
+          <div class="status-list">
+            <div class="status-row">
+              <span class="status-tag shipped">shipped</span>
+              <span class="what"><b>metering ledger</b> — cost, trail, evals; hash-chained, append-only</span>
+            </div>
+            <div class="status-row">
+              <span class="status-tag shipped">shipped</span>
+              <span class="what"><b>trust-tier routing</b> — owner / sender / system, per-sender budgets</span>
+            </div>
+            <div class="status-row">
+              <span class="status-tag shipped">shipped</span>
+              <span class="what"><b>cli</b> — <code>copenode trail</code> / <code>copenode verify</code></span>
+            </div>
+            <div class="status-row">
+              <span class="status-tag shipped">shipped</span>
+              <span class="what"><b>provenance publishing</b> from ci</span>
+            </div>
+            <div class="status-row">
+              <span class="status-tag building">building</span>
+              <span class="what"><b>bridge</b> — spawn / steer / collect from chat</span>
+            </div>
+            <div class="status-row">
+              <span class="status-tag building">building</span>
+              <span class="what"><b>approval cards</b> in channel</span>
+            </div>
+            <div class="status-row">
+              <span class="status-tag planned">planned</span>
+              <span class="what"><b>mechanical eval executor</b> — tests / lint in the worktree</span>
+            </div>
+            <div class="status-row">
+              <span class="status-tag planned">planned</span>
+              <span class="what"><b>delivery policies</b> — quiet hours, digests, no-reply semantics</span>
+            </div>
+          </div>
+
+          <p class="status-note">
+            issues and prs welcome — including "here's the flow i want" feature requests.
+            <a href="https://github.com/copenode/copenode/blob/main/docs/ROADMAP.md">the roadmap ↗</a>
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================= footer ================= -->
+    <footer>
+      <div class="wrap">
+        <div class="foot-logo">
+          <img src="assets/copenode01.jpg" alt="copenode logo — copernican orbits" width="140" height="140">
+        </div>
+        <div class="foot-mark">copenode</div>
+        <p class="foot-quote">
+          "Autonomy, engineered around systemic stability. That is the whole design."
+        </p>
+
+        <div class="foot-grid">
+          <div class="foot-col">
+            <h3>project</h3>
+            <ul>
+              <li><a href="https://github.com/copenode/copenode">github ↗</a></li>
+              <li><a href="https://github.com/copenode/copenode/blob/main/docs/MANIFESTO.md">manifesto ↗</a></li>
+              <li><a href="https://github.com/copenode/copenode/blob/main/docs/ROADMAP.md">roadmap ↗</a></li>
+              <li><a href="https://github.com/copenode/copenode/blob/main/SECURITY.md">security ↗</a></li>
+            </ul>
+          </div>
+          <div class="foot-col">
+            <h3>community</h3>
+            <ul>
+              <li><a href="https://discord.gg/WXhGUuG4R">discord ↗</a></li>
+              <li><a href="https://www.reddit.com/r/copenode/">reddit · r/copenode ↗</a></li>
+              <li><a href="https://x.com/copenodesys">x · @copenodesys ↗</a></li>
+              <li><a href="https://www.npmjs.com/org/copenode">npm · @copenode ↗</a></li>
+            </ul>
+          </div>
+          <div class="foot-col">
+            <h3>contact</h3>
+            <ul>
+              <li><a href="mailto:security@copenode.com">security@copenode.com</a></li>
+              <li><a href="https://copenode.com">copenode.com</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="foot-base">
+          <span>MIT © 2026 copenode contributors</span>
+          <span>not affiliated with openclaw or paseo</span>
+          <span>drawn under a chosen sun</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // copy-to-clipboard only: no loops, no timers beyond the label reset.
+    document.querySelectorAll("[data-copy]").forEach(function (btn) {
+      var label = btn.querySelector(".copy-label");
+      btn.addEventListener("click", function () {
+        var text = btn.getAttribute("data-copy");
+        var done = function () {
+          if (!label) return;
+          label.textContent = " ✓ copied";
+          btn.classList.add("copied");
+          setTimeout(function () {
+            label.textContent = "";
+            btn.classList.remove("copied");
+          }, 1400);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {});
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch (e) {}
+          document.body.removeChild(ta);
+          done();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

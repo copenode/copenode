@@ -3,7 +3,5 @@ node_modules/
 .DS_Store
 dist/
 *.tgz
-docs/MANIFESTO.md
-docs/ROADMAP.md
 target/
 Cargo.lock

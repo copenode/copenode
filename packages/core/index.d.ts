@@ -128,3 +128,14 @@ export function decide(
   who: { userGroup: string; agentGroup: string; action: string },
 ): { allowed: true; bounds: { isolation: "sandbox" | "worktree"; spendCap: number | null; maxDepth: number; network: string }; rule: number }
   | { allowed: false; rule: string };
+
+export function digestTree(dir: string): string;
+
+export function randomToken(bytes?: number): string;
+
+export function evaluateStartup(args: {
+  hasPin: boolean;
+  pinDigests: Record<string, string> | null;
+  liveDigests: Record<string, string>;
+  hasLastGood: boolean;
+}): { mode: "bootstrap" | "apply" | "safe"; reason: string; mismatched: string[] };

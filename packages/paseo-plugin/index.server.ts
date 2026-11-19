@@ -1,88 +1,51 @@
 /**
  * copenode — Paseo plugin entry (daemon side).
  *
- * Starts the ingress the OpenClaw side posts to. No UI in v0: a plugin
- * with no client contributions omits index.client.tsx entirely.
+ * Starts the ingress the OpenClaw side posts to. No UI in v0.
  *
- * Configuration (env overrides file; file overrides defaults):
- *   ~/.paseo/copenode/config.json —
- *   {
- *     "ownerLabels":        ["oc/whatsapp/+33612345678"],
- *     "allowlistedLabels":  ["oc/telegram/alice"],
- *     "limit":              2,          // dollars / sender / 24h
- *     "projectPath":        "/home/uma/copenode-lab/demo-repo",
- *     "ledgerPath":         "~/.paseo/copenode/ledger.jsonl",
- *     "port":               6789
- *   }
- *   Env: COPENODE_PORT, COPENODE_LEDGER, COPENODE_LIMIT,
- *        COPENODE_OWNERS, COPENODE_SENDERS, COPENODE_PROJECT, COPENODE_CONFIG
+ * Startup runs the gate (core/evaluateStartup):
+ *   bootstrap — first start ever: apply the operator's files, pin them
+ *   apply     — digests match the authorization pin: apply, refresh last-good
+ *   safe      — anything else (edited files + agent reload, missing pin):
+ *               run LAST-KNOWN-GOOD policy, refuse the files, testify
+ *
+ * The ingress token lives in ~/.paseo/copenode/token (generated on first
+ * start); every /spawn call must carry it in `x-copenode-token`.
+ *
+ * Operator ceremony for policy/config changes:
+ *   1. edit ~/.paseo/copenode/{config,policy}.json
+ *   2. npx copenode policy authorize        (pins the new digests)
+ *   3. paseo plugin reload copenode
  */
 
 import os from "node:os";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
-import { loadPolicy, type Policy } from "@copenode/core";
+import { loadPolicy, digestTree, randomToken, evaluateStartup, createLedger, type Policy } from "@copenode/core";
 import { startIngress } from "./server/ingress.ts";
 import type { BridgeConfig } from "./server/decide.ts";
 
-function readConfig(): {
-  config: BridgeConfig;
-  ledgerPath: string;
-  port: number;
-  projectPath: string | null;
-  provider: string | null;
-  model: string | null;
-} {
-  const env = process.env;
-  const baseDir = join(os.homedir(), ".paseo", "copenode");
-  const configPath = env.COPENODE_CONFIG ?? join(baseDir, "config.json");
+const KNOWN_PROVIDERS = new Set(["opencode", "claude", "codex", "copilot", "pi", "omp", "antigravity", "muse"]);
 
-  let file: Record<string, unknown> = {};
-  try {
-    file = JSON.parse(readFileSync(configPath, "utf8")) as Record<string, unknown>;
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-  }
-
-  // Policy config is operator-owned. Unknown keys are named and ignored —
-  // most often an agent that went config-hunting instead of doing its job.
-  const KNOWN_KEYS = new Set([
-    "ownerLabels", "allowlistedLabels", "limit", "projectPath",
-    "provider", "model", "ledgerPath", "port",
-  ]);
-  const unknownKeys = Object.keys(file).filter((k) => !KNOWN_KEYS.has(k));
-  if (unknownKeys.length > 0) {
-    console.error(
-      `[copenode] config: ignoring unknown key(s) ${unknownKeys.join(", ")} — ` +
-        "this file is operator-owned policy, not a general config surface",
-    );
-  }
-
-  // Fail closed on values: an invalid provider keeps the plugin DOWN
-  // (visible in `paseo plugin logs`) rather than failing mysteriously at spawn.
-  const KNOWN_PROVIDERS = new Set(["opencode", "claude", "codex", "copilot", "pi", "omp", "antigravity", "muse"]);
-
-  const splitList = (v: string | undefined) =>
-    (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-
-  const ownerLabels = env.COPENODE_OWNERS
-    ? splitList(env.COPENODE_OWNERS)
-    : Array.isArray(file.ownerLabels) ? (file.ownerLabels as string[]) : [];
-  const allowlistedLabels = env.COPENODE_SENDERS
-    ? splitList(env.COPENODE_SENDERS)
-    : Array.isArray(file.allowlistedLabels) ? (file.allowlistedLabels as string[]) : [];
-
+function buildFromDocs(
+  env: NodeJS.ProcessEnv,
+  configDoc: Record<string, unknown>,
+  policyDoc: Record<string, unknown> | null,
+  legacyLabels: { ownerLabels: string[]; allowlistedLabels: string[] },
+): { config: BridgeConfig; ledgerPath: string; port: number; projectPath: string | null; provider: string | null; model: string | null } {
+  const limit = Number(env.COPENODE_LIMIT ?? configDoc.limit ?? 2);
   const ledgerPath = env.COPENODE_LEDGER
-    ?? (typeof file.ledgerPath === "string" ? file.ledgerPath : join(baseDir, "ledger.jsonl"));
-  const port = Number(env.COPENODE_PORT ?? file.port ?? 6789);
-  const limit = Number(env.COPENODE_LIMIT ?? file.limit ?? 2);
+    ?? (typeof configDoc.ledgerPath === "string" ? configDoc.ledgerPath : join(os.homedir(), ".paseo", "copenode", "ledger.jsonl"));
+  const port = Number(env.COPENODE_PORT ?? configDoc.port ?? 6789);
   const projectPath = env.COPENODE_PROJECT
-    ?? (typeof file.projectPath === "string" ? file.projectPath : null);
+    ?? (typeof configDoc.projectPath === "string" ? configDoc.projectPath : null);
   const provider = env.COPENODE_PROVIDER
-    ?? (typeof file.provider === "string" ? file.provider : null);
+    ?? (typeof configDoc.provider === "string" ? configDoc.provider : null);
   const model = env.COPENODE_MODEL
-    ?? (typeof file.model === "string" ? file.model : null);
+    ?? (typeof configDoc.model === "string" ? configDoc.model : null);
 
   if (provider !== null && !KNOWN_PROVIDERS.has(provider)) {
     throw new Error(
@@ -91,16 +54,11 @@ function readConfig(): {
     );
   }
 
-  // The constitution: policy.json is the operator's law. Missing file =
-  // legacy labels synthesize a transitional policy (migration warning);
-  // broken policy = plugin refuses to start (fail closed).
-  const policyPath = env.COPENODE_POLICY ?? join(baseDir, "policy.json");
   let policy: Policy;
-  try {
-    policy = loadPolicy(JSON.parse(readFileSync(policyPath, "utf8")));
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-    if (ownerLabels.length > 0 || allowlistedLabels.length > 0) {
+  if (policyDoc) {
+    policy = loadPolicy(policyDoc);
+  } else {
+    if (legacyLabels.ownerLabels.length > 0 || legacyLabels.allowlistedLabels.length > 0) {
       console.error(
         "[copenode] no policy.json — synthesizing a transitional policy from " +
           "ownerLabels/allowlistedLabels. Migrate to policy.json.",
@@ -108,8 +66,8 @@ function readConfig(): {
     }
     policy = loadPolicy({
       userGroups: {
-        owners: { labels: ownerLabels },
-        senders: { labels: allowlistedLabels },
+        owners: { labels: legacyLabels.ownerLabels },
+        senders: { labels: legacyLabels.allowlistedLabels },
       },
       rules: [
         {
@@ -127,25 +85,112 @@ function readConfig(): {
     });
   }
 
-  return {
-    config: { policy, limit },
-    ledgerPath,
-    port,
-    projectPath,
-    provider,
-    model,
-  };
+  return { config: { policy, limit }, ledgerPath, port, projectPath, provider, model };
+}
+
+function sha256File(path: string): string {
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
 export default function contribute(_server: PluginServerContext) {
-  const { config, ledgerPath, port, projectPath, provider, model } = readConfig();
-  const ingress = startIngress({ config, ledgerPath, port, projectPath, provider, model });
-  console.log(
-    `[copenode] ingress on 127.0.0.1:${ingress.port()} · limit $${config.limit}/sender/24h · ` +
-    `groups: ${Object.keys(config.policy.userGroups).length} · rules: ${config.policy.rules.length} · ` +
-    `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ` +
-    `model: ${model ?? "(provider default)"} · ledger: ${ledgerPath}`,
-  );
+  const env = process.env;
+  const baseDir = join(os.homedir(), ".paseo", "copenode");
+  mkdirSync(baseDir, { recursive: true });
+  const configPath = env.COPENODE_CONFIG ?? join(baseDir, "config.json");
+  const policyPath = env.COPENODE_POLICY ?? join(baseDir, "policy.json");
+  const pinPath = join(baseDir, "authorize.json");
+  const lastGoodPath = join(baseDir, "last-good.json");
+  const tokenPath = join(baseDir, "token");
+
+  // Shared secret for the ingress: generated once, operator-distributed.
+  const token = existsSync(tokenPath)
+    ? readFileSync(tokenPath, "utf8").trim()
+    : randomToken();
+  if (!existsSync(tokenPath)) {
+    writeFileSync(tokenPath, token + "\n", { mode: 0o600 });
+    console.log(`[copenode] ingress token created at ${tokenPath} (share only with the gateway)`);
+  }
+
+  const liveDigests = {
+    config: existsSync(configPath) ? sha256File(configPath) : "absent",
+    policy: existsSync(policyPath) ? sha256File(policyPath) : "absent",
+    source: digestTree(dirname(fileURLToPath(import.meta.url))),
+  };
+
+  const hasPin = existsSync(pinPath);
+  const hasLastGood = existsSync(lastGoodPath);
+  const pin = hasPin ? (JSON.parse(readFileSync(pinPath, "utf8")) as { digests?: Record<string, string> }) : null;
+  const lastGood = hasLastGood ? (JSON.parse(readFileSync(lastGoodPath, "utf8")) as { configDoc?: object; policyDoc?: object }) : null;
+  const gate = evaluateStartup({
+    hasPin,
+    pinDigests: pin?.digests ?? null,
+    liveDigests,
+    hasLastGood,
+  });
+
+  // The ledger exists before the gate: the gate itself is witnessed.
+  const ledgerPath = env.COPENODE_LEDGER ?? join(baseDir, "ledger.jsonl");
+  mkdirSync(dirname(ledgerPath), { recursive: true });
+  const ledger = createLedger();
+
+  let configDoc: Record<string, unknown>;
+  let policyDoc: Record<string, unknown> | null;
+  let mode = gate.mode;
+
+  if (gate.mode === "safe" && lastGood?.configDoc) {
+    // Refuse the files; run the last law the operator authorized.
+    configDoc = lastGood.configDoc as Record<string, unknown>;
+    policyDoc = (lastGood.policyDoc ?? null) as Record<string, unknown> | null;
+  } else {
+    configDoc = existsSync(configPath) ? (JSON.parse(readFileSync(configPath, "utf8")) as Record<string, unknown>) : {};
+    policyDoc = existsSync(policyPath) ? (JSON.parse(readFileSync(policyPath, "utf8")) as Record<string, unknown>) : null;
+    if (gate.mode === "bootstrap" || gate.mode === "apply") {
+      writeFileSync(lastGoodPath, JSON.stringify({ configDoc, policyDoc, digests: liveDigests, ts: new Date().toISOString() }, null, 2));
+    }
+    if (gate.mode === "bootstrap") {
+      writeFileSync(pinPath, JSON.stringify({ digests: liveDigests, ts: new Date().toISOString() }, null, 2));
+    }
+  }
+
+  // The pin is deliberately reusable while digests match: ordinary daemon
+  // crash-restarts re-apply the authorized law without ceremony. Drift from
+  // the pin is what flips the gate to safe mode.
+
+  const legacyLabels = {
+    ownerLabels: Array.isArray(configDoc.ownerLabels) ? (configDoc.ownerLabels as string[]) : [],
+    allowlistedLabels: Array.isArray(configDoc.allowlistedLabels) ? (configDoc.allowlistedLabels as string[]) : [],
+  };
+  const built = buildFromDocs(env, configDoc, policyDoc, legacyLabels);
+
+  const gateRow = (rule: string, status: string) => {
+    ledger.record({
+      identity: { sender: "<gate>", tier: "system" },
+      decision: { verdict: "allow", rule },
+      action: { kind: "policy", target: "config+policy+source" },
+      outcome: { status, artifactRef: liveDigests.source.slice(0, 16) },
+    });
+  };
+  if (gate.mode === "bootstrap") gateRow("bootstrapped", "pinned");
+  else if (gate.mode === "apply") gateRow("authorized-reload", "applied");
+  else gateRow(`unauthorized-reload: ${gate.reason}`, "safe-mode");
+
+  const ingress = startIngress({
+    config: built.config,
+    ledgerPath,
+    port: built.port,
+    projectPath: built.projectPath,
+    provider: built.provider,
+    model: built.model,
+    token,
+  });
+  void ingress.ready.then((port) => {
+    console.log(
+      `[copenode] ${gate.mode.toUpperCase()} (${gate.reason}) · ingress on 127.0.0.1:${port} · ` +
+      `limit $${built.config.limit}/sender/24h · groups: ${Object.keys(built.config.policy.userGroups).length} · ` +
+      `rules: ${built.config.policy.rules.length} · project: ${built.projectPath ?? "(none)"} · ` +
+      `provider: ${built.provider ?? "(none)"} · model: ${built.model ?? "(provider default)"}`,
+    );
+  });
   return () => {
     ingress.stop();
   };
