@@ -142,6 +142,7 @@ copenode is an independent project, not affiliated with OpenClaw or Paseo.
 - **GitHub:** [github.com/copenode](https://github.com/copenode)
 - **X:** [@copenodesys](https://x.com/copenodesys)
 - **Discord:** [discord.gg/WXhGUuG4R](https://discord.gg/WXhGUuG4R)
+- **Reddit:** [r/copenode](https://www.reddit.com/r/copenode/)
 
 ## Security
 
