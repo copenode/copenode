@@ -24,7 +24,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
-import { loadPolicy, digestTree, randomToken, evaluateStartup, createLedger, type Policy } from "@copenode/core";
+import { loadPolicy, digestTree, randomToken, evaluateStartup, createLedger, jsonlStore, type Policy } from "@copenode/core";
 import { startIngress } from "./server/ingress.ts";
 import type { BridgeConfig } from "./server/decide.ts";
 
@@ -92,6 +92,20 @@ function sha256File(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
+/** The plugin's own source directory — import.meta is unreliable under Paseo's compiler. */
+function resolveSourceDir(explicit: string | undefined): string | null {
+  if (explicit) return explicit;
+  try {
+    const url = (import.meta as { url?: string } | undefined)?.url;
+    if (typeof url === "string" && url.startsWith("file:")) {
+      return dirname(fileURLToPath(url));
+    }
+  } catch {
+    // bundled contexts may not carry import.meta — the pin carries the path instead
+  }
+  return null;
+}
+
 export default function contribute(_server: PluginServerContext) {
   const env = process.env;
   const baseDir = join(os.homedir(), ".paseo", "copenode");
@@ -111,16 +125,19 @@ export default function contribute(_server: PluginServerContext) {
     console.log(`[copenode] ingress token created at ${tokenPath} (share only with the gateway)`);
   }
 
+  // The pin may carry the plugin's own source path (written by the CLI at
+  // authorize time — Paseo's runtime context does not expose it).
+  const hasPin = existsSync(pinPath);
+  const pin = hasPin ? (JSON.parse(readFileSync(pinPath, "utf8")) as { digests?: Record<string, string>; sourcePath?: string }) : null;
+  const hasLastGood = existsSync(lastGoodPath);
+  const lastGood = hasLastGood ? (JSON.parse(readFileSync(lastGoodPath, "utf8")) as { configDoc?: object; policyDoc?: object }) : null;
+
+  const sourceDir = resolveSourceDir(env.COPENODE_SOURCE ?? pin?.sourcePath);
   const liveDigests = {
     config: existsSync(configPath) ? sha256File(configPath) : "absent",
     policy: existsSync(policyPath) ? sha256File(policyPath) : "absent",
-    source: digestTree(dirname(fileURLToPath(import.meta.url))),
+    source: sourceDir && existsSync(sourceDir) ? digestTree(sourceDir) : "pending",
   };
-
-  const hasPin = existsSync(pinPath);
-  const hasLastGood = existsSync(lastGoodPath);
-  const pin = hasPin ? (JSON.parse(readFileSync(pinPath, "utf8")) as { digests?: Record<string, string> }) : null;
-  const lastGood = hasLastGood ? (JSON.parse(readFileSync(lastGoodPath, "utf8")) as { configDoc?: object; policyDoc?: object }) : null;
   const gate = evaluateStartup({
     hasPin,
     pinDigests: pin?.digests ?? null,
@@ -131,7 +148,8 @@ export default function contribute(_server: PluginServerContext) {
   // The ledger exists before the gate: the gate itself is witnessed.
   const ledgerPath = env.COPENODE_LEDGER ?? join(baseDir, "ledger.jsonl");
   mkdirSync(dirname(ledgerPath), { recursive: true });
-  const ledger = createLedger();
+  const store = jsonlStore(ledgerPath);
+  const ledger = createLedger({ store });
 
   let configDoc: Record<string, unknown>;
   let policyDoc: Record<string, unknown> | null;
@@ -148,7 +166,7 @@ export default function contribute(_server: PluginServerContext) {
       writeFileSync(lastGoodPath, JSON.stringify({ configDoc, policyDoc, digests: liveDigests, ts: new Date().toISOString() }, null, 2));
     }
     if (gate.mode === "bootstrap") {
-      writeFileSync(pinPath, JSON.stringify({ digests: liveDigests, ts: new Date().toISOString() }, null, 2));
+      writeFileSync(pinPath, JSON.stringify({ digests: liveDigests, sourcePath: sourceDir, ts: new Date().toISOString() }, null, 2));
     }
   }
 
@@ -182,6 +200,7 @@ export default function contribute(_server: PluginServerContext) {
     provider: built.provider,
     model: built.model,
     token,
+    store,
   });
   void ingress.ready.then((port) => {
     console.log(

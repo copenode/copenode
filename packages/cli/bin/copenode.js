@@ -103,7 +103,7 @@ if (topCommand === "policy") {
     const digests = liveDigests();
     writeFileSync(
       join(home, "authorize.json"),
-      JSON.stringify({ digests, ts: new Date().toISOString() }, null, 2),
+      JSON.stringify({ digests, sourcePath: existsSync(sourceDir) ? sourceDir : null, ts: new Date().toISOString() }, null, 2),
     );
     process.stdout.write(
       `pinned:\n` +

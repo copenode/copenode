@@ -49,7 +49,11 @@ export interface IngressOptions {
   store?: LedgerStore;
 }
 
-export function startIngress(opts: IngressOptions): { stop: () => void; port: () => number } {
+export function startIngress(opts: IngressOptions): {
+  stop: () => void;
+  port: () => number;
+  ready: Promise<number>;
+} {
   // The daemon's cwd is wherever it was launched from — never trust it with
   // state. Create the ledger's home explicitly.
   mkdirSync(dirname(opts.ledgerPath), { recursive: true });
@@ -58,6 +62,18 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
   const maxConcurrent = opts.maxConcurrentPerSender ?? 3;
   const inFlight = new Map<string, number>();
   let lastAuthLog = 0;
+
+  /** Response writes guarded against destroyed sockets (gate tests close mid-flight). */
+  const reply = (res: import("node:http").ServerResponse, status: number, body: unknown) => {
+    try {
+      if (!res.writableEnded && !res.destroyed) {
+        res.writeHead(status, { "content-type": "application/json" });
+        res.end(JSON.stringify(body));
+      }
+    } catch {
+      // a closed connection must never crash the gate
+    }
+  };
 
   function witnessAuthFailure(reason: string) {
     // Rate-limited: an unauthenticated flood must not flood the ephemeris.
@@ -79,8 +95,7 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
     const url = new URL(req.url ?? "/", "http://local");
 
     if (req.method === "GET" && url.pathname === "/health") {
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, spine: "copenode", verify: ledger.verify().ok }));
+      reply(res, 200, { ok: true, spine: "copenode", verify: ledger.verify().ok });
       return;
     }
 
@@ -89,8 +104,7 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
       const presented = req.headers["x-copenode-token"];
       if (!opts.token || presented !== opts.token) {
         witnessAuthFailure(presented ? "bad-token" : "no-token");
-        res.writeHead(401, { "content-type": "application/json" });
-        res.end(JSON.stringify({ ok: false, error: "unauthorized" }));
+        reply(res, 401, { ok: false, error: "unauthorized" });
         return;
       }
 
@@ -104,8 +118,7 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
           const decision = decideInbound(opts.config, ledger, JSON.parse(body));
 
           if (!decision.ok) {
-            res.writeHead(403, { "content-type": "application/json" });
-            res.end(JSON.stringify(decision));
+            reply(res, 403, decision);
             return;
           }
 
@@ -118,8 +131,7 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
               action: { kind: "run", target: null },
               outcome: { status: "refused" },
             });
-            res.writeHead(429, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: false, label: decision.label, rule: "concurrency-limit" }));
+            reply(res, 429, { ok: false, label: decision.label, rule: "concurrency-limit" });
             return;
           }
           inFlight.set(decision.label, inUse + 1);
@@ -144,8 +156,7 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
             opts.model ?? null,
           )
             .then((result) => {
-              res.writeHead(200, { "content-type": "application/json" });
-              res.end(JSON.stringify({ ...decision, workspaceId: result.workspaceId, agentId: result.agentId }));
+              reply(res, 200, { ...decision, workspaceId: result.workspaceId, agentId: result.agentId });
               if (result.agentId) {
                 // Fire-and-forget: the finish hook judges the run and appends
                 // the truth to the ledger. The HTTP answer never waits for it.
@@ -164,21 +175,18 @@ export function startIngress(opts: IngressOptions): { stop: () => void; port: ()
             })
             .catch((err: unknown) => {
               const message = err instanceof Error ? err.message : String(err);
-              res.writeHead(500, { "content-type": "application/json" });
-              res.end(JSON.stringify({ ok: false, label: decision.label, rule: "spawn-failed", error: message }));
+              reply(res, 500, { ok: false, label: decision.label, rule: "spawn-failed", error: message });
               release();
             });
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          res.writeHead(400, { "content-type": "application/json" });
-          res.end(JSON.stringify({ ok: false, error: "bad request: " + message }));
+          reply(res, 400, { ok: false, error: "bad request: " + message });
         }
       });
       return;
     }
 
-    res.writeHead(404, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: false, error: "not found" }));
+    reply(res, 404, { ok: false, error: "not found" });
   });
 
   const host = opts.host ?? "127.0.0.1";

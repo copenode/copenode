@@ -62,7 +62,7 @@ function post(port: number, body: unknown, headers: Record<string, string> = {})
   });
 }
 
-test("gate 1: no token / wrong token = 401, witnessed in the ledger", async () => {
+test("gate 1: no token / wrong token = 401, witnessed in the ledger", { timeout: 8000 }, async () => {
   const { ingress, ready } = start();
   const port = await ready;
   try {
@@ -77,8 +77,8 @@ test("gate 1: no token / wrong token = 401, witnessed in the ledger", async () =
   }
 });
 
-test("gate 2: spawn storms are capped per sender (429, rule named)", async () => {
-  // spawn hangs until released: in-flight stays pinned, then unwinds
+test("gate 2: spawn storms are capped per sender (429, rule named)", { timeout: 8000 }, async () => {
+  // spawn hangs until released: requests 1-2 stay in flight, request 3 is capped
   let release: (v: { workspaceId: string | null; agentId: string | null }) => void = () => {};
   const hang = new Promise<{ workspaceId: string | null; agentId: string | null }>((resolve) => {
     release = resolve;
@@ -86,14 +86,18 @@ test("gate 2: spawn storms are capped per sender (429, rule named)", async () =>
   const { ingress, ready } = start(() => hang);
   const port = await ready;
   try {
-    const first = await post(port, { channel: "whatsapp", senderId: "+33766657966", text: "1" }, { "x-copenode-token": "sekrit" });
-    assert.equal(first.status, 200);
-    await post(port, { channel: "whatsapp", senderId: "+33766657966", text: "2" }, { "x-copenode-token": "sekrit" });
+    // fire the two in-flight spawns without awaiting their (withheld) responses
+    const q1 = post(port, { channel: "whatsapp", senderId: "+33766657966", text: "1" }, { "x-copenode-token": "sekrit" });
+    const q2 = post(port, { channel: "whatsapp", senderId: "+33766657966", text: "2" }, { "x-copenode-token": "sekrit" });
     const third = await post(port, { channel: "whatsapp", senderId: "+33766657966", text: "3" }, { "x-copenode-token": "sekrit" });
     assert.equal(third.status, 429);
     assert.equal(third.json.rule, "concurrency-limit");
+    // releasing the spawn un-wedges requests 1 and 2
+    release({ workspaceId: "wks_x", agentId: "agent_2" });
+    const [first, second] = await Promise.all([q1, q2]);
+    assert.equal(first.status, 200);
+    assert.equal(second.status, 200);
   } finally {
-    release({ workspaceId: null, agentId: null });
     ingress.stop();
   }
 });
