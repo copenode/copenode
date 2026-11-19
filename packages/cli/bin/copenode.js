@@ -79,9 +79,10 @@ const sourceDir = args.source ?? join(dirname(fileURLToPath(import.meta.url)), "
 
 function liveDigests() {
   const digests = {};
-  for (const name of ["config.json", "policy.json"]) {
-    const p = join(home, name);
-    digests[name] = existsSync(p) ? createHash("sha256").update(readFileSync(p)).digest("hex") : "absent";
+  const files = [["config", "config.json"], ["policy", "policy.json"]];
+  for (const [key, file] of files) {
+    const p = join(home, file);
+    digests[key] = existsSync(p) ? createHash("sha256").update(readFileSync(p)).digest("hex") : "absent";
   }
   digests.source = existsSync(sourceDir) ? digestTree(sourceDir) : "absent";
   return digests;
