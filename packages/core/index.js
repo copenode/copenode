@@ -14,6 +14,14 @@ export const CORE_VERSION = "0.1.0";
 
 export { senderToLabel, routingFor, classifySender, TIERS } from "./trust.js";
 export {
+  loadPolicy,
+  resolveUserGroup,
+  decide,
+  ACTIONS,
+  ISOLATIONS,
+  AGENT_GROUPS,
+} from "./policy.js";
+export {
   createLedger,
   memoryStore,
   jsonlStore,

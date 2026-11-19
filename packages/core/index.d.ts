@@ -96,3 +96,35 @@ export function createBudgetGuard(options: {
 };
 
 export const CORE_VERSION: string;
+
+export const ACTIONS: readonly string[];
+export const ISOLATIONS: readonly string[];
+export const AGENT_GROUPS: readonly string[];
+
+export interface PolicyRule {
+  userGroup: string;
+  agentGroup: string;
+  deny?: string[];
+  allow?: string[];
+  bounds?: {
+    isolation?: "sandbox" | "worktree";
+    spendCap?: number;
+    maxDepth?: number;
+    network?: "none" | "scoped" | "open";
+  };
+}
+
+export interface Policy {
+  userGroups: Record<string, { labels: string[] }>;
+  rules: PolicyRule[];
+}
+
+export function loadPolicy(doc: unknown): Policy;
+
+export function resolveUserGroup(policy: Policy, label: string): string;
+
+export function decide(
+  policy: Policy,
+  who: { userGroup: string; agentGroup: string; action: string },
+): { allowed: true; bounds: { isolation: "sandbox" | "worktree"; spendCap: number | null; maxDepth: number; network: string }; rule: number }
+  | { allowed: false; rule: string };

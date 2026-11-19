@@ -22,6 +22,7 @@ import os from "node:os";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
+import { loadPolicy, type Policy } from "@copenode/core";
 import { startIngress } from "./server/ingress.ts";
 import type { BridgeConfig } from "./server/decide.ts";
 
@@ -90,8 +91,44 @@ function readConfig(): {
     );
   }
 
+  // The constitution: policy.json is the operator's law. Missing file =
+  // legacy labels synthesize a transitional policy (migration warning);
+  // broken policy = plugin refuses to start (fail closed).
+  const policyPath = env.COPENODE_POLICY ?? join(baseDir, "policy.json");
+  let policy: Policy;
+  try {
+    policy = loadPolicy(JSON.parse(readFileSync(policyPath, "utf8")));
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    if (ownerLabels.length > 0 || allowlistedLabels.length > 0) {
+      console.error(
+        "[copenode] no policy.json — synthesizing a transitional policy from " +
+          "ownerLabels/allowlistedLabels. Migrate to policy.json.",
+      );
+    }
+    policy = loadPolicy({
+      userGroups: {
+        owners: { labels: ownerLabels },
+        senders: { labels: allowlistedLabels },
+      },
+      rules: [
+        {
+          userGroup: "owners", agentGroup: "*",
+          allow: ["spawn", "steer"],
+          bounds: { isolation: "worktree", spendCap: limit, maxDepth: 0 },
+        },
+        {
+          userGroup: "senders", agentGroup: "*",
+          allow: ["spawn"],
+          bounds: { isolation: "sandbox", spendCap: limit, maxDepth: 0 },
+        },
+        { userGroup: "*", agentGroup: "*", deny: ["*"] },
+      ],
+    });
+  }
+
   return {
-    config: { ownerLabels, allowlistedLabels, limit },
+    config: { policy, limit },
     ledgerPath,
     port,
     projectPath,
@@ -105,7 +142,7 @@ export default function contribute(_server: PluginServerContext) {
   const ingress = startIngress({ config, ledgerPath, port, projectPath, provider, model });
   console.log(
     `[copenode] ingress on 127.0.0.1:${ingress.port()} · limit $${config.limit}/sender/24h · ` +
-    `owner labels: ${config.ownerLabels.length} · sender labels: ${config.allowlistedLabels.length} · ` +
+    `groups: ${Object.keys(config.policy.userGroups).length} · rules: ${config.policy.rules.length} · ` +
     `project: ${projectPath ?? "(none)"} · provider: ${provider ?? "(none)"} · ` +
     `model: ${model ?? "(provider default)"} · ledger: ${ledgerPath}`,
   );
