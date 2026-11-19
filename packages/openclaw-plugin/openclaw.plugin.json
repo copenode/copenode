@@ -1,0 +1,16 @@
+{
+  "id": "copenode",
+  "name": "copenode",
+  "description": "The policy spine beneath agent nodes: spawn governed Paseo workspaces from chat — every requester identified, policy-checked, budgeted, and witnessed.",
+  "categories": ["developer-tools"],
+  "contracts": {
+    "tools": ["copenode_spawn", "copenode_status"]
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}
