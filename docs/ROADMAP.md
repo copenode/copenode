@@ -178,7 +178,11 @@ LocalSubnet only), daemon password required first. Teardown: delete portproxy
 - No forking OpenClaw/Paseo, ever, even when a fork looks faster than an adapter.
 
 **Scope:**
-- **E** `@copenode/openclaw-plugin`: inbound msg → `senderToLabel` → `routingFor` → workspace spawn; approval card; diff back to thread
+- **E** ~~`@copenode/openclaw-plugin`~~ ✅ scaffolded 2026-11-19 — tool plugin
+  (`copenode_spawn` / `copenode_status`) on OpenClaw's plugin-sdk:
+  requester attestation (`requesterSenderId`) → spine ingress (token) →
+  verdict in thread (accepted names tier+isolation; refusals name the rule).
+  Pinned to pluginApi 2026.11.6. Lab bring-up + E2E remain.
 - **E** `@copenode/paseo-plugin`: workspace lifecycle per label; collect diff + cost
 - **E** Mechanical eval executor (run the target repo's tests/lint in the worktree) — judge #1
 - **M** Human eval via approval-card verdicts; per-sender budgets live

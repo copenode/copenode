@@ -13,6 +13,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { basename, join } from "node:path";
 import { homedir } from "node:os";
+import { existsSync, statSync } from "node:fs";
 import type { Ledger } from "@copenode/core";
 
 const run = promisify(execFile);
@@ -113,6 +114,21 @@ export async function trackRun(
   };
   const verdict = mechanicalVerdict(obs);
 
+  // Vendored Floorplan skill: a governed run may have updated the project's
+  // map. When it did, the eval note says so — the thread's "how well it went"
+  // then points at a visual, not just a diff stat.
+  let extras = "";
+  try {
+    if (cwd) {
+      const mapNote = join(cwd, "floorplan", "recent-work.json");
+      if (existsSync(mapNote) && statSync(mapNote).mtimeMs >= started) {
+        extras = " · floorplan map updated";
+      }
+    }
+  } catch {
+    // the note is best-effort; the run's verdict never depends on it
+  }
+
   // The finish event, linked back to its spawn via refId.
   ledger.record({
     identity: anchor.identity,
@@ -130,8 +146,8 @@ export async function trackRun(
   ledger.attachEval(opts.originalEntryId, {
     judge: "mechanical",
     verdict: verdict.verdict,
-    note: verdict.note,
+    note: verdict.note + extras,
   });
 
-  console.log(`[copenode] finish ${opts.agentId.slice(0, 8)}: ${observedStatus} · ${verdict.verdict} · ${verdict.note}`);
+  console.log(`[copenode] finish ${opts.agentId.slice(0, 8)}: ${observedStatus} · ${verdict.verdict} · ${verdict.note}${extras}`);
 }
