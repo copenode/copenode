@@ -188,8 +188,15 @@ LocalSubnet only), daemon password required first. Teardown: delete portproxy
 - **M** Human eval via approval-card verdicts; per-sender budgets live
 - **L** Delivery policies (quiet hours, digests)
 
-**Exit:** THE demo — a chat message becomes a sandboxed worktree, tests run,
-diff + cost + eval land back in the thread. Recorded on video.
+**Exit:** ✅ **MET 2026-11-21 — the bridge is live.** A real WhatsApp message
+from the owner's phone (+33665039280, attested by OpenClaw) walked the entire
+spine: classified **owner** → policy rule 0 granted → budget ok → Paseo
+worktree agent `162124f1` created `bridge-live.txt` → finish hook graded it
+(`pass · 1 file(s) changed`) → trail rows chained (48 entries, verify ok) →
+verdict delivered back into the WhatsApp thread. First governed refusal also
+witnessed (mis-classified label → denied → agent declined to bypass → fixed
+forward). Remaining polish, not exit-blockers: cost harvesting, upstream
+submission, demo video.
 
 **Incident log — 2026-11-18, first governance incident.** An agent (running
 inside the lab) was asked to "enable opencode-go as a provider inside opencode

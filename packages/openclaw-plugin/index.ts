@@ -47,7 +47,11 @@ export default definePluginEntry({
       async execute(_id, params) {
         try {
           const config = readSpineConfig();
-          const channel = toolContext.nativeChannelId ?? "openclaw";
+          // nativeChannelId proved to be the conversation id (the peer number),
+          // not the platform. The plugin's platform identity is stable: every
+          // message through this plugin is openclaw. Refine later via
+          // delivery-context probing if per-channel labels ever matter.
+          const channel = "openclaw";
           const senderId = toolContext.requesterSenderId ?? "local-dashboard";
           const decision = await spawnAtSpine(config, {
             channel,

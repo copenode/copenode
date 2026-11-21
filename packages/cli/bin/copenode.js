@@ -59,8 +59,9 @@ function fmt(entry) {
   const { identity, decision, action, cost, outcome } = entry;
   const who = `${identity.sender} (${identity.tier})`;
   const cost$ = cost.dollars > 0 ? ` $${cost.dollars.toFixed(4)}` : "";
+  const tok = cost.tokens > 0 ? ` ${cost.tokens.toLocaleString()} tok` : "";
   const eval_ = action.kind === "eval" ? ` -> ${entry.eval.judge}:${entry.eval.verdict ?? ""}` : "";
-  return `${entry.ts}  ${decision.verdict.padEnd(6)} ${decision.isolation.padEnd(8)} ${who.padEnd(38)} ${action.kind.padEnd(16)}${cost$} ${outcome.status}${eval_}`;
+  return `${entry.ts}  ${decision.verdict.padEnd(6)} ${decision.isolation.padEnd(8)} ${who.padEnd(38)} ${action.kind.padEnd(16)}${cost$}${tok} ${outcome.status}${eval_}`;
 }
 
 const [topCommand, ...rest] = process.argv.slice(2);

@@ -4,7 +4,7 @@
   "description": "copenode for OpenClaw: governed Paseo spawns from chat. Every requester is identified, policy-checked, budgeted, and witnessed by the spine.",
   "type": "module",
   "openclaw": {
-    "extensions": ["./index.ts"],
+    "extensions": ["./dist/index.js"],
     "compat": {
       "pluginApi": ">=2026.11.6",
       "minGatewayVersion": "2026.11.6"
@@ -15,9 +15,15 @@
     }
   },
   "scripts": {
+    "build": "esbuild index.ts --bundle --format=esm --platform=node --outfile=dist/index.js",
     "test": "node --test spine.test.ts",
     "typecheck": "tsc --noEmit"
   },
+  "files": [
+    "dist/",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
   "keywords": [
     "openclaw",
     "openclaw-plugin",
@@ -30,6 +36,10 @@
   "dependencies": {
     "@copenode/core": "^0.1.0",
     "typebox": "^1.4.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.2"
   },
   "peerDependencies": {
     "openclaw": ">=2026.11.6"
