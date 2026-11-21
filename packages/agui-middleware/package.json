@@ -1,0 +1,43 @@
+{
+  "name": "@copenode/agui-middleware",
+  "version": "0.0.1",
+  "description": "copenode's AG-UI plane: observe-only middleware that meters any AG-UI event stream into the policy spine's ledger — zero code change downstream.",
+  "type": "module",
+  "main": "meter.ts",
+  "files": [
+    "meter.ts",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test meter.test.ts"
+  },
+  "keywords": [
+    "agui",
+    "ag-ui",
+    "copenode",
+    "agents",
+    "metering",
+    "governance",
+    "middleware"
+  ],
+  "dependencies": {
+    "@copenode/core": "^0.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/copenode/copenode.git",
+    "directory": "packages/agui-middleware"
+  },
+  "homepage": "https://copenode.com",
+  "bugs": {
+    "url": "https://github.com/copenode/copenode/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
